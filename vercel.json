@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/split/:code", "destination": "/index.html" }
+  ]
+}
