@@ -18,6 +18,8 @@
     --border: #EBEBEB;
     --shadow: 0 4px 24px rgba(0,0,0,0.08);
     --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+    --warning: #FFA500;
+    --success: #00C853;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -141,6 +143,7 @@
   .section-title {
     font-size: 13px; font-weight: 600; color: var(--gray);
     text-transform: uppercase; letter-spacing: 0.8px;
+    display: flex; align-items: center;
   }
   .select-all-btn {
     font-size: 14px; color: var(--coral); font-weight: 600;
@@ -257,14 +260,34 @@
   }
   .success-screen.visible { display: flex; }
   .success-icon {
-    width: 80px; height: 80px; background: var(--coral);
+    width: 80px; height: 80px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     margin-bottom: 24px; font-size: 40px; color: white;
   }
-  .success-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-  .success-message { font-size: 16px; color: var(--gray); margin-bottom: 32px; max-width: 280px; }
-  .success-amount { font-size: 40px; font-weight: 700; color: var(--coral); margin: 16px 0; }
+  .success-icon.pending { background: var(--warning); }
+  .success-icon.confirmed { background: var(--success); }
+  .success-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
+  .success-message { font-size: 16px; color: var(--gray); margin-bottom: 24px; max-width: 320px; line-height: 1.5; }
+  .success-amount { font-size: 40px; font-weight: 700; color: var(--coral); margin: 8px 0; }
+  .success-status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #FFF8E1; color: #F57F17;
+    padding: 8px 16px; border-radius: 20px;
+    font-size: 13px; font-weight: 700;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255,165,0,0.2);
+  }
+  .success-status-badge.confirmed {
+    background: #E8F5E9; color: #1B5E20;
+    border-color: rgba(0,200,83,0.2);
+  }
+  .success-status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--warning);
+    animation: pulse 1.5s infinite;
+  }
+  .success-status-badge.confirmed .success-status-dot { background: var(--success); animation: none; }
   .toast {
     position: fixed; bottom: 24px; left: 50%;
     transform: translateX(-50%) translateY(100px);
@@ -277,10 +300,52 @@
   .hidden { display: none !important; }
   .sync-dot {
     display: inline-block; width: 6px; height: 6px;
-    border-radius: 50%; background: #00D632;
+    border-radius: 50%; background: var(--success);
     margin-left: 6px; animation: pulse 2s infinite;
   }
+  .sync-dot.saving { background: var(--warning); }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* Pending banner shown on main screen after payment initiated */
+  .pending-banner {
+    margin: 16px; padding: 16px;
+    background: #FFF8E1; border: 1px solid var(--warning);
+    border-radius: 14px; color: #F57F17;
+    display: flex; align-items: center; gap: 12px;
+    font-weight: 600; font-size: 14px;
+  }
+  .pending-banner.confirmed {
+    background: #E8F5E9;
+    border-color: var(--success);
+    color: #1B5E20;
+  }
+  .pending-banner .pending-icon {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--warning); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .pending-banner.confirmed .pending-icon { background: var(--success); }
+  .pending-banner .pending-text { flex: 1; line-height: 1.3; }
+  .pending-banner .pending-subtitle {
+    font-weight: 500; font-size: 12px; opacity: 0.85;
+    margin-top: 2px;
+  }
+
+  .done-btn {
+    width: calc(100% - 32px);
+    margin: 8px 16px 24px;
+    background: white;
+    color: var(--black);
+    border: 1px solid var(--border);
+    padding: 16px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
 </style>
 </head>
 <body>
@@ -332,6 +397,14 @@
     <div class="host-total" id="host-total"></div>
   </div>
 
+  <div id="pending-banner" class="pending-banner hidden">
+    <div class="pending-icon" id="pending-icon">⏱</div>
+    <div class="pending-text">
+      <div id="pending-title">Payment initiated</div>
+      <div class="pending-subtitle" id="pending-subtitle">Waiting for the host to confirm they received it</div>
+    </div>
+  </div>
+
   <div class="get-app-banner">
     <div class="app-icon">🐷</div>
     <div class="app-info">
@@ -342,7 +415,7 @@
   </div>
 
   <div class="section-header">
-    <div class="section-title">Tap to claim your items<span class="sync-dot" title="Live sync"></span></div>
+    <div class="section-title">Tap to claim your items<span class="sync-dot" id="sync-dot" title="Live sync"></span></div>
     <button class="select-all-btn" onclick="toggleSelectAll()">Select All</button>
   </div>
 
@@ -370,13 +443,17 @@
 </div>
 
 <div id="success-screen" class="success-screen">
-  <div class="success-icon">✓</div>
-  <div class="success-title">You're all set!</div>
+  <div class="success-icon pending" id="success-icon">⏱</div>
+  <div class="success-title" id="success-title">Payment sent!</div>
   <div class="success-amount" id="success-amount"></div>
-  <div class="success-message">
-    We've let <span id="success-host">the host</span> know. Get the Pigge app to track splits with friends.
+  <div class="success-status-badge" id="success-badge">
+    <span class="success-status-dot"></span>
+    <span id="success-badge-text">Waiting for host to confirm</span>
   </div>
-  <a href="#" class="app-btn" style="background: var(--coral); color: white; padding: 14px 28px;">Get the App</a>
+  <div class="success-message" id="success-message">
+    <span id="success-host">The host</span> will confirm they received your payment. This helps make sure everyone paid correctly.
+  </div>
+  <button class="done-btn" onclick="hideSuccess()">Done</button>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -385,6 +462,9 @@
 const SUPABASE_URL = 'https://biaylcqwowuukgmblfew.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpYXlsY3F3b3d1dWtnbWJsZmV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4ODIxMDcsImV4cCI6MjA5MjQ1ODEwN30.jkGPlBoObHmvU-1w_lVC_c67Vk7FPLOaC0em3AFmejo';
 
+// ==========================================================
+// State
+// ==========================================================
 let splitData = null;
 let rawRow = null;
 let claimedItems = new Set();
@@ -393,8 +473,15 @@ let guestId = generateUUID();
 let guestName = null;
 let splitCode = null;
 let saving = false;
+let pendingSync = false;
+let lastSuccessfulSyncAt = 0;
+let paymentStatus = 'none'; // 'none' | 'pending' | 'confirmed'
 let claimSyncTimer = null;
+let pollingTimer = null;
 
+// ==========================================================
+// Init
+// ==========================================================
 async function init() {
   splitCode = getCodeFromUrl();
   if (!splitCode) { showError('No split code found in the URL.'); return; }
@@ -444,6 +531,9 @@ function normalizeSplitData(row) {
   const participants = (row.participants || []).map(p => ({
     id: p.id, name: p.name,
     isGuest: p.isGuest ?? p.is_guest ?? true,
+    hasPaid: p.hasPaid ?? p.has_paid ?? false,
+    status: p.status || 'claimed',
+    paidVia: p.paidVia ?? p.paid_via ?? null,
   }));
   const payMethods = (row.host_payment_methods || []).filter(m => m.isEnabled !== false);
   return {
@@ -460,6 +550,9 @@ function normalizeSplitData(row) {
   };
 }
 
+// ==========================================================
+// Name entry
+// ==========================================================
 function showNameEntry() {
   document.getElementById('loading').classList.add('hidden');
   document.getElementById('name-entry').classList.remove('hidden');
@@ -515,6 +608,9 @@ async function addParticipantToSplit() {
   splitData.participants = participants;
 }
 
+// ==========================================================
+// Render
+// ==========================================================
 function render() {
   document.getElementById('restaurant-name').textContent = splitData.restaurant;
   document.getElementById('item-count').textContent = splitData.items.length;
@@ -524,9 +620,29 @@ function render() {
   document.getElementById('host-total').textContent = `$${splitData.total.toFixed(2)}`;
   document.getElementById('guest-badge').textContent = `You: ${guestName}`;
   document.getElementById('success-host').textContent = splitData.hostName;
+
+  claimedItems = new Set();
+  splitData.items.forEach(i => {
+    if ((i.claimedBy || []).includes(guestId)) claimedItems.add(i.id);
+  });
+
+  syncPaymentStatusFromServer();
   renderItems();
   updateSummary();
   startPolling();
+}
+
+function syncPaymentStatusFromServer() {
+  const me = splitData.participants.find(p => p.id === guestId);
+  if (!me) return;
+  const serverStatus = (me.status || '').toLowerCase();
+  if (me.hasPaid === true || serverStatus === 'settled' || serverStatus === 'paid') {
+    paymentStatus = 'confirmed';
+    updatePaymentBanners();
+  } else if (serverStatus === 'pending_confirmation' || me.paidVia) {
+    paymentStatus = 'pending';
+    updatePaymentBanners();
+  }
 }
 
 function renderItems() {
@@ -535,12 +651,12 @@ function renderItems() {
   splitData.items.forEach(item => {
     const claimedByOthers = (item.claimedBy || []).filter(id => id !== guestId);
     const isTaken = claimedByOthers.length > 0 && !item.isSplit;
-    const isMine = (item.claimedBy || []).includes(guestId);
-    if (isMine) claimedItems.add(item.id);
+    const isMine = claimedItems.has(item.id);
+    const locked = paymentStatus !== 'none';
     const div = document.createElement('div');
     div.className = 'item' + (isTaken ? ' taken' : '') + (isMine ? ' claimed' : '');
     div.id = `item-${item.id}`;
-    div.onclick = () => { if (!isTaken) toggleItem(item.id); };
+    div.onclick = () => { if (!isTaken && !locked) toggleItem(item.id); };
     let claimedLabel = '';
     if (isTaken) {
       const claimer = splitData.participants.find(p => claimedByOthers.includes(p.id));
@@ -565,17 +681,24 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-async function toggleItem(id) {
+// ==========================================================
+// Claiming
+// ==========================================================
+function toggleItem(id) {
+  if (paymentStatus !== 'none') return;
   const card = document.getElementById(`item-${id}`);
-  if (!card || card.classList.contains('taken') || saving) return;
+  if (!card || card.classList.contains('taken')) return;
   const wasClaimed = claimedItems.has(id);
   if (wasClaimed) { claimedItems.delete(id); card.classList.remove('claimed'); }
   else { claimedItems.add(id); card.classList.add('claimed'); }
+  pendingSync = true;
+  setSyncDot('saving');
   updateSummary();
   scheduleClaimSync();
 }
 
 function toggleSelectAll() {
+  if (paymentStatus !== 'none') return;
   const available = splitData.items.filter(i => {
     const otherClaims = (i.claimedBy || []).filter(id => id !== guestId);
     return !(otherClaims.length > 0 && !i.isSplit);
@@ -587,45 +710,93 @@ function toggleSelectAll() {
     if (allClaimed) { claimedItems.delete(item.id); card.classList.remove('claimed'); }
     else { claimedItems.add(item.id); card.classList.add('claimed'); }
   });
+  pendingSync = true;
+  setSyncDot('saving');
   updateSummary();
   scheduleClaimSync();
 }
 
 function scheduleClaimSync() {
   clearTimeout(claimSyncTimer);
-  claimSyncTimer = setTimeout(syncClaimsToServer, 600);
+  claimSyncTimer = setTimeout(syncClaimsToServer, 500);
 }
 
 async function syncClaimsToServer() {
   if (saving) { scheduleClaimSync(); return; }
   saving = true;
+  setSyncDot('saving');
+
+  const localClaimed = new Set(claimedItems);
+
   try {
     const latest = await fetchSplit(splitCode);
     if (!latest) throw new Error('Split disappeared');
-    rawRow = latest;
+
     const updatedItems = (latest.items || []).map(i => {
       const claimedBy = Array.isArray(i.claimedBy) ? [...i.claimedBy] : [];
       const idx = claimedBy.indexOf(guestId);
-      if (claimedItems.has(i.id)) { if (idx === -1) claimedBy.push(guestId); }
-      else { if (idx !== -1) claimedBy.splice(idx, 1); }
+      if (localClaimed.has(i.id)) {
+        if (idx === -1) claimedBy.push(guestId);
+      } else {
+        if (idx !== -1) claimedBy.splice(idx, 1);
+      }
       return { ...i, claimedBy };
     });
-    const mySubtotal = getYourSubtotal();
-    const ratio = splitData.subtotal > 0 ? mySubtotal / splitData.subtotal : 0;
-    const myTax = splitData.tax * ratio;
-    const myTip = splitData.tip * ratio;
+
+    let mySubtotal = 0;
+    updatedItems.forEach(i => {
+      if (localClaimed.has(i.id)) mySubtotal += Number(i.price) || 0;
+    });
+    const splitSubtotal = Number(latest.subtotal) || 0;
+    const ratio = splitSubtotal > 0 ? mySubtotal / splitSubtotal : 0;
+    const myTax = (Number(latest.tax) || 0) * ratio;
+    const myTip = (Number(latest.tip) || 0) * ratio;
+
     const updatedParticipants = (latest.participants || []).map(p => {
       if (p.id !== guestId) return p;
-      return { ...p, claimedItemIds: Array.from(claimedItems),
-        itemSubtotal: mySubtotal, taxShare: myTax, tipShare: myTip };
+      return {
+        ...p,
+        claimedItemIds: Array.from(localClaimed),
+        itemSubtotal: mySubtotal,
+        taxShare: myTax,
+        tipShare: myTip,
+      };
     });
+
     await patchSplit({ items: updatedItems, participants: updatedParticipants });
+
+    rawRow = { ...latest, items: updatedItems, participants: updatedParticipants };
+    splitData = normalizeSplitData(rawRow);
+    lastSuccessfulSyncAt = Date.now();
+
+    const stillMatches = setsEqual(localClaimed, claimedItems);
+    if (stillMatches) {
+      pendingSync = false;
+      setSyncDot('synced');
+    } else {
+      scheduleClaimSync();
+    }
   } catch (err) {
     console.error('Sync failed:', err);
-    showToast('Connection issue — changes may not be saved');
+    showToast('Connection issue — retrying...');
+    setSyncDot('error');
+    setTimeout(scheduleClaimSync, 2000);
   } finally {
     saving = false;
   }
+}
+
+function setsEqual(a, b) {
+  if (a.size !== b.size) return false;
+  for (const x of a) if (!b.has(x)) return false;
+  return true;
+}
+
+function setSyncDot(state) {
+  const dot = document.getElementById('sync-dot');
+  if (!dot) return;
+  if (state === 'saving' || state === 'error') dot.classList.add('saving');
+  else dot.classList.remove('saving');
 }
 
 async function patchSplit(fields) {
@@ -647,33 +818,53 @@ async function patchSplit(fields) {
   }
 }
 
+// ==========================================================
+// Polling
+// ==========================================================
 function startPolling() {
-  setInterval(async () => {
-    if (saving) return;
+  if (pollingTimer) clearInterval(pollingTimer);
+  pollingTimer = setInterval(async () => {
+    if (saving || pendingSync) return;
+    if (Date.now() - lastSuccessfulSyncAt < 2000) return;
     try {
       const latest = await fetchSplit(splitCode);
       if (!latest) return;
       if (!rawRow || latest.updated_at !== rawRow.updated_at) {
         rawRow = latest;
-        const before = JSON.stringify(splitData.items.map(i => i.claimedBy));
         splitData = normalizeSplitData(latest);
-        const after = JSON.stringify(splitData.items.map(i => i.claimedBy));
-        if (before !== after) {
+        if (!pendingSync) {
           claimedItems = new Set();
           splitData.items.forEach(i => {
             if ((i.claimedBy || []).includes(guestId)) claimedItems.add(i.id);
           });
-          renderItems();
-          updateSummary();
+        }
+        renderItems();
+        updateSummary();
+        // Check if host confirmed my payment
+        const me = splitData.participants.find(p => p.id === guestId);
+        if (me) {
+          const serverStatus = (me.status || '').toLowerCase();
+          const hostConfirmed = me.hasPaid === true || serverStatus === 'settled' || serverStatus === 'paid';
+          if (hostConfirmed && paymentStatus !== 'confirmed') {
+            paymentStatus = 'confirmed';
+            updatePaymentBanners();
+            // If success screen is visible, update it too
+            if (document.getElementById('success-screen').classList.contains('visible')) {
+              flipSuccessToConfirmed();
+            }
+          }
         }
       }
     } catch (e) {}
-  }, 4000);
+  }, 3000);
 }
 
+// ==========================================================
+// Summary
+// ==========================================================
 function getYourSubtotal() {
   return splitData.items.filter(i => claimedItems.has(i.id))
-    .reduce((sum, i) => sum + i.price, 0);
+    .reduce((sum, i) => sum + (Number(i.price) || 0), 0);
 }
 
 function updateSummary() {
@@ -691,6 +882,14 @@ function updateSummary() {
     document.getElementById('your-total').textContent = `$${total.toFixed(2)}`;
     document.getElementById('success-amount').textContent = `$${total.toFixed(2)}`;
     renderPaymentMethods(total);
+    // Hide pay button if already paid or pending
+    const payBtn = document.getElementById('pay-btn');
+    if (paymentStatus !== 'none') {
+      payBtn.classList.add('hidden');
+      document.getElementById('payment-options').classList.remove('visible');
+    } else {
+      payBtn.classList.remove('hidden');
+    }
   } else {
     document.getElementById('pre-claim-state').classList.remove('hidden');
     document.getElementById('claim-state').classList.add('hidden');
@@ -699,7 +898,11 @@ function updateSummary() {
   }
 }
 
+// ==========================================================
+// Payment
+// ==========================================================
 function togglePayment() {
+  if (paymentStatus !== 'none') return;
   paymentVisible = !paymentVisible;
   const opts = document.getElementById('payment-options');
   const btn = document.getElementById('pay-btn');
@@ -735,9 +938,9 @@ function renderPaymentMethods(amount) {
     const a = document.createElement('a');
     a.href = url;
     a.className = 'payment-method';
-    a.onclick = async () => {
-      await markAsPaid(m.platform);
-      setTimeout(showSuccess, 600);
+    a.onclick = (e) => {
+      markAsPending(m.platform, amount).catch(err => console.error(err));
+      setTimeout(showSuccessPending, 600);
     };
     a.innerHTML = `
       <div class="payment-icon ${cssClass}">${emoji}</div>
@@ -782,22 +985,96 @@ function getEmoji(platform) {
   }
 }
 
-async function markAsPaid(platform) {
+// Mark as PENDING — host still needs to confirm
+async function markAsPending(platform, amount) {
+  paymentStatus = 'pending';
+  updatePaymentBanners();
   try {
     const latest = await fetchSplit(splitCode);
     if (!latest) return;
     const participants = (latest.participants || []).map(p => {
       if (p.id !== guestId) return p;
-      return { ...p, hasPaid: true, paidAt: new Date().toISOString(), paidVia: platform };
+      return {
+        ...p,
+        hasPaid: false, // NOT paid yet — host must confirm
+        status: 'pending_confirmation',
+        paidVia: platform,
+        paidAt: new Date().toISOString(), // timestamp of WHEN they initiated
+        partialPaidAmount: amount,
+      };
     });
     await patchSplit({ participants });
-  } catch (e) { console.error('markAsPaid failed', e); }
+  } catch (e) { console.error('markAsPending failed', e); }
 }
 
-function showSuccess() {
+function updatePaymentBanners() {
+  const banner = document.getElementById('pending-banner');
+  const bannerIcon = document.getElementById('pending-icon');
+  const bannerTitle = document.getElementById('pending-title');
+  const bannerSubtitle = document.getElementById('pending-subtitle');
+
+  if (paymentStatus === 'pending') {
+    banner.classList.remove('hidden', 'confirmed');
+    bannerIcon.textContent = '⏱';
+    bannerTitle.textContent = 'Payment initiated';
+    bannerSubtitle.textContent = `Waiting for ${splitData.hostName} to confirm they received it`;
+  } else if (paymentStatus === 'confirmed') {
+    banner.classList.remove('hidden');
+    banner.classList.add('confirmed');
+    bannerIcon.textContent = '✓';
+    bannerTitle.textContent = 'Payment confirmed';
+    bannerSubtitle.textContent = `${splitData.hostName} confirmed receipt — you're all squared up`;
+  } else {
+    banner.classList.add('hidden');
+  }
+
+  // Hide pay button if pending/confirmed
+  const payBtn = document.getElementById('pay-btn');
+  if (payBtn) {
+    if (paymentStatus !== 'none') {
+      payBtn.classList.add('hidden');
+      document.getElementById('payment-options').classList.remove('visible');
+    } else {
+      payBtn.classList.remove('hidden');
+    }
+  }
+
+  // Re-render items so tapping gets locked
+  renderItems();
+}
+
+function showSuccessPending() {
   document.getElementById('success-screen').classList.add('visible');
+  const icon = document.getElementById('success-icon');
+  icon.className = 'success-icon pending';
+  icon.textContent = '⏱';
+  document.getElementById('success-title').textContent = 'Payment sent!';
+  const badge = document.getElementById('success-badge');
+  badge.classList.remove('confirmed');
+  document.getElementById('success-badge-text').textContent = 'Waiting for host to confirm';
+  document.getElementById('success-message').innerHTML =
+    `<span id="success-host">${escapeHtml(splitData.hostName)}</span> will confirm they received your payment. This helps make sure everyone paid correctly.`;
 }
 
+function flipSuccessToConfirmed() {
+  const icon = document.getElementById('success-icon');
+  icon.className = 'success-icon confirmed';
+  icon.textContent = '✓';
+  document.getElementById('success-title').textContent = 'You\'re all set!';
+  const badge = document.getElementById('success-badge');
+  badge.classList.add('confirmed');
+  document.getElementById('success-badge-text').textContent = 'Payment confirmed';
+  document.getElementById('success-message').innerHTML =
+    `${escapeHtml(splitData.hostName)} confirmed they received your payment. Thanks for splitting with Pigge!`;
+}
+
+function hideSuccess() {
+  document.getElementById('success-screen').classList.remove('visible');
+}
+
+// ==========================================================
+// Toast & Error
+// ==========================================================
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
