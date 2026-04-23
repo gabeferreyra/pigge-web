@@ -717,7 +717,7 @@ async function registerGuest() {
   if (!latest) throw new Error('Split disappeared');
   rawRow = latest;
   const participants = Array.isArray(latest.participants) ? [...latest.participants] : [];
-  const exists = participants.find(p => p.id === guestId);
+  const exists = participants.find(p => sameId(p.id, guestId));
   if (!exists) {
     participants.push({
       id: guestId, name: guestName, isGuest: true, userId: null,
@@ -749,9 +749,12 @@ function render() {
   document.getElementById('guest-badge').textContent = `You: ${guestName}`;
   document.getElementById('success-host').textContent = splitData.hostName;
 
+  // Rebuild claimedItems from whichever data source has the claim info.
+  // iOS sometimes clears item.claimedBy while keeping participant.claimedItemIds, so check both.
   claimedItems = new Set();
+  const myItemIds = getMyClaimedItemIds();
   splitData.items.forEach(i => {
-    if ((i.claimedBy || []).includes(guestId)) claimedItems.add(i.id);
+    if (myItemIds.has(i.id)) claimedItems.add(i.id);
   });
 
   syncPaymentStatusFromServer();
@@ -760,8 +763,69 @@ function render() {
   startPolling();
 }
 
+// Returns a Set of item IDs that this guest has claimed, checking both sources:
+// 1. item.claimedBy includes our guestId
+// 2. participant with our id or name has this item in claimedItemIds
+// UUIDs are compared case-insensitively because iOS upper/lower-cases them inconsistently.
+function sameId(a, b) {
+  if (a == null || b == null) return false;
+  return String(a).toLowerCase() === String(b).toLowerCase();
+}
+
+function arrIncludesId(arr, id) {
+  if (!Array.isArray(arr) || id == null) return false;
+  const target = String(id).toLowerCase();
+  for (const x of arr) if (x != null && String(x).toLowerCase() === target) return true;
+  return false;
+}
+
+function getMyClaimedItemIds() {
+  const result = new Set();
+
+  // Source 1: items where our guestId is in claimedBy
+  splitData.items.forEach(i => {
+    if (arrIncludesId(i.claimedBy, guestId)) result.add(i.id);
+  });
+
+  // Source 2: our participant's claimedItemIds (matched by id OR name as fallback)
+  let me = splitData.participants.find(p => sameId(p.id, guestId));
+  if (!me && guestName) {
+    me = splitData.participants.find(p => (p.name || '').toLowerCase() === guestName.toLowerCase());
+    // If found by name and UUID drifted, adopt the current UUID so subsequent writes use it
+    if (me && !sameId(me.id, guestId)) {
+      guestId = me.id;
+      saveStoredGuest(splitCode, guestId, guestName);
+    }
+  }
+  if (me && Array.isArray(me.claimedItemIds)) {
+    me.claimedItemIds.forEach(id => result.add(id));
+  }
+
+  return result;
+}
+
+// Returns a list of participant objects (excluding self) who have claimed a given item
+function getOthersWhoClaimedItem(item) {
+  const others = [];
+  // Source 1: item.claimedBy
+  (item.claimedBy || []).forEach(claimerId => {
+    if (sameId(claimerId, guestId)) return;
+    const p = splitData.participants.find(pp => sameId(pp.id, claimerId));
+    if (p) others.push(p);
+  });
+  // Source 2: participants whose claimedItemIds includes this item (and not already added)
+  splitData.participants.forEach(p => {
+    if (sameId(p.id, guestId)) return;
+    if (others.find(o => sameId(o.id, p.id))) return;
+    if (Array.isArray(p.claimedItemIds) && arrIncludesId(p.claimedItemIds, item.id)) {
+      others.push(p);
+    }
+  });
+  return others;
+}
+
 function syncPaymentStatusFromServer() {
-  const me = splitData.participants.find(p => p.id === guestId);
+  const me = splitData.participants.find(p => sameId(p.id, guestId));
   if (!me) return;
   const serverStatus = (me.status || '').toLowerCase();
   if (me.hasPaid === true || serverStatus === 'settled' || serverStatus === 'paid') {
@@ -777,17 +841,17 @@ function renderItems() {
   const list = document.getElementById('items-list');
   list.innerHTML = '';
   splitData.items.forEach(item => {
-    const claimedByOthers = (item.claimedBy || []).filter(id => id !== guestId);
+    const claimedByOthers = getOthersWhoClaimedItem(item);
     const isTaken = claimedByOthers.length > 0 && !item.isSplit;
     const isMine = claimedItems.has(item.id);
     const locked = paymentStatus !== 'none';
     const div = document.createElement('div');
-    div.className = 'item' + (isTaken ? ' taken' : '') + (isMine ? ' claimed' : '');
+    div.className = 'item' + (isTaken && !isMine ? ' taken' : '') + (isMine ? ' claimed' : '');
     div.id = `item-${item.id}`;
-    div.onclick = () => { if (!isTaken && !locked) toggleItem(item.id); };
+    div.onclick = () => { if (!(isTaken && !isMine) && !locked) toggleItem(item.id); };
     let claimedLabel = '';
-    if (isTaken) {
-      const claimer = splitData.participants.find(p => claimedByOthers.includes(p.id));
+    if (isTaken && !isMine) {
+      const claimer = claimedByOthers[0];
       claimedLabel = `<div class="claimed-by">Claimed by ${claimer ? escapeHtml(claimer.name) : 'someone'}</div>`;
     }
     div.innerHTML = `
@@ -828,8 +892,8 @@ function toggleItem(id) {
 function toggleSelectAll() {
   if (paymentStatus !== 'none') return;
   const available = splitData.items.filter(i => {
-    const otherClaims = (i.claimedBy || []).filter(id => id !== guestId);
-    return !(otherClaims.length > 0 && !i.isSplit);
+    const others = getOthersWhoClaimedItem(i);
+    return !(others.length > 0 && !i.isSplit);
   });
   const allClaimed = available.every(i => claimedItems.has(i.id));
   available.forEach(item => {
@@ -867,7 +931,7 @@ async function syncClaimsToServer() {
 
     const updatedItems = (latest.items || []).map(i => {
       const claimedBy = Array.isArray(i.claimedBy) ? [...i.claimedBy] : [];
-      const idx = claimedBy.indexOf(guestId);
+      let idx = -1; for (let k = 0; k < claimedBy.length; k++) { if (sameId(claimedBy[k], guestId)) { idx = k; break; } }
       if (localClaimed.has(i.id)) {
         if (idx === -1) claimedBy.push(guestId);
       } else {
@@ -886,7 +950,7 @@ async function syncClaimsToServer() {
     const myTip = (Number(latest.tip) || 0) * ratio;
 
     const updatedParticipants = (latest.participants || []).map(p => {
-      if (p.id !== guestId) return p;
+      if (!sameId(p.id, guestId)) return p;
       return {
         ...p,
         claimedItemIds: Array.from(localClaimed),
@@ -967,13 +1031,15 @@ function startPolling() {
         splitData = normalizeSplitData(latest);
         if (!pendingSync) {
           claimedItems = new Set();
+          const myItemIds = getMyClaimedItemIds();
           splitData.items.forEach(i => {
-            if ((i.claimedBy || []).includes(guestId)) claimedItems.add(i.id);
+            if (myItemIds.has(i.id)) claimedItems.add(i.id);
           });
         }
         renderItems();
         updateSummary();
-        const me = splitData.participants.find(p => p.id === guestId);
+        const me = splitData.participants.find(p => sameId(p.id, guestId))
+          || (guestName && splitData.participants.find(p => (p.name || '').toLowerCase() === guestName.toLowerCase()));
         if (me) {
           const serverStatus = (me.status || '').toLowerCase();
           const hostConfirmed = me.hasPaid === true || serverStatus === 'settled' || serverStatus === 'paid';
@@ -1120,7 +1186,7 @@ async function markAsPending(platform, amount) {
     const latest = await fetchSplit(splitCode);
     if (!latest) return;
     const participants = (latest.participants || []).map(p => {
-      if (p.id !== guestId) return p;
+      if (!sameId(p.id, guestId)) return p;
       return {
         ...p,
         hasPaid: false,
@@ -1150,7 +1216,7 @@ function markAsPendingKeepalive(platform, amount) {
 
   // Build the full updated participants array from current known state
   const updatedParticipants = (splitData.participants || []).map(p => {
-    if (p.id !== guestId) return p;
+    if (!sameId(p.id, guestId)) return p;
     return {
       ...p,
       hasPaid: false,
