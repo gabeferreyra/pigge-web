@@ -78,6 +78,14 @@
   }
   .primary-btn:active { transform: scale(0.97); }
   .primary-btn:disabled { background: var(--border); color: var(--gray); box-shadow: none; cursor: not-allowed; }
+  .secondary-btn {
+    width: 100%; max-width: 320px; margin-top: 12px;
+    background: white; color: var(--black);
+    border: 1px solid var(--border);
+    padding: 16px; border-radius: 14px;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
   .header {
     background: var(--coral);
     padding: 52px 20px 32px;
@@ -331,17 +339,25 @@
     margin-top: 2px;
   }
   .done-btn {
-    width: calc(100% - 32px);
-    margin: 8px 16px 24px;
-    background: white;
-    color: var(--black);
+    width: calc(100% - 32px); margin: 8px 16px 24px;
+    background: white; color: var(--black);
     border: 1px solid var(--border);
-    padding: 16px;
-    border-radius: 14px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
+    padding: 16px; border-radius: 14px;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .resume-card {
+    width: 100%; max-width: 320px;
+    background: var(--coral-light); border: 2px solid var(--coral);
+    border-radius: 14px; padding: 16px;
+    margin-bottom: 12px; text-align: left;
+  }
+  .resume-card .resume-name {
+    font-size: 15px; font-weight: 700; color: var(--black);
+    margin-bottom: 2px;
+  }
+  .resume-card .resume-meta {
+    font-size: 13px; color: var(--gray);
   }
 </style>
 </head>
@@ -362,11 +378,19 @@
 
 <div id="name-entry" class="full-screen name-screen hidden">
   <div class="pig-mascot">🐷</div>
-  <div class="state-title">What's your name?</div>
-  <div class="state-message">So <span id="host-name-preview">the host</span> knows who ordered what.</div>
+  <div class="state-title" id="name-entry-title">What's your name?</div>
+  <div class="state-message" id="name-entry-message">So <span id="host-name-preview">the host</span> knows who ordered what.</div>
   <div class="restaurant-preview" id="restaurant-preview"></div>
   <input type="text" id="name-input" class="name-input" placeholder="Your name" autocomplete="given-name" maxlength="30" />
   <button class="primary-btn" id="name-continue-btn" onclick="submitName()" disabled>Continue</button>
+</div>
+
+<div id="resume-prompt" class="full-screen hidden">
+  <div class="pig-mascot" style="font-size: 60px; margin-bottom: 16px;">🐷</div>
+  <div class="state-title">Someone with that name is already here</div>
+  <div class="state-message">Is one of these you?</div>
+  <div id="resume-candidates"></div>
+  <button class="secondary-btn" onclick="showFreshNameEntry()">I'm someone new</button>
 </div>
 
 <div id="main-content" class="hidden">
@@ -466,8 +490,9 @@ let splitData = null;
 let rawRow = null;
 let claimedItems = new Set();
 let paymentVisible = false;
-let guestId = null;          // Will be loaded from or saved to localStorage
-let guestName = null;         // Same — persists across reloads
+let guestId = null;
+let guestName = null;
+let guestRegistered = false;  // Has this guest been added to the Supabase participants array?
 let splitCode = null;
 let saving = false;
 let pendingSync = false;
@@ -477,24 +502,25 @@ let claimSyncTimer = null;
 let pollingTimer = null;
 
 // ==========================================================
-// Guest identity persistence
+// Storage helpers
 // ==========================================================
 function storageKey(code) { return `pigge_guest_${code}`; }
-
 function loadStoredGuest(code) {
   try {
     const raw = localStorage.getItem(storageKey(code));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed && parsed.id && parsed.name) return parsed;
-    return null;
-  } catch (e) { return null; }
+  } catch (e) {}
+  return null;
 }
-
 function saveStoredGuest(code, id, name) {
   try {
     localStorage.setItem(storageKey(code), JSON.stringify({ id, name, savedAt: Date.now() }));
-  } catch (e) { /* localStorage may be blocked — that's fine, they'll just need to re-enter name */ }
+  } catch (e) {}
+}
+function clearStoredGuest(code) {
+  try { localStorage.removeItem(storageKey(code)); } catch (e) {}
 }
 
 // ==========================================================
@@ -504,33 +530,26 @@ async function init() {
   splitCode = getCodeFromUrl();
   if (!splitCode) { showError('No split code found in the URL.'); return; }
 
-  // Try to restore previous guest identity for this split
-  const stored = loadStoredGuest(splitCode);
-  if (stored) {
-    guestId = stored.id;
-    guestName = stored.name;
-  }
-
   try {
     const data = await fetchSplit(splitCode);
     if (!data) { showError('This split link is invalid or has expired.'); return; }
     rawRow = data;
     splitData = normalizeSplitData(data);
 
-    // If we have stored identity, verify the participant is still in the split
-    if (guestId && guestName) {
-      const exists = splitData.participants.find(p => p.id === guestId);
+    // Check for stored identity
+    const stored = loadStoredGuest(splitCode);
+    if (stored) {
+      const exists = splitData.participants.find(p => p.id === stored.id);
       if (exists) {
-        // Good — skip name entry, go straight to claim screen
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('main-content').classList.remove('hidden');
-        render();
+        // Resume as same guest — already registered in Supabase
+        guestId = stored.id;
+        guestName = stored.name;
+        guestRegistered = true;
+        goToClaimScreen();
         return;
       } else {
-        // Participant was removed (maybe host cleared them) — start fresh
-        guestId = null;
-        guestName = null;
-        localStorage.removeItem(storageKey(splitCode));
+        // They were removed — start fresh
+        clearStoredGuest(splitCode);
       }
     }
 
@@ -539,6 +558,14 @@ async function init() {
     console.error('Init error:', err);
     showError('Could not load split. Please check your connection and try again.');
   }
+}
+
+function goToClaimScreen() {
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('name-entry').classList.add('hidden');
+  document.getElementById('resume-prompt').classList.add('hidden');
+  document.getElementById('main-content').classList.remove('hidden');
+  render();
 }
 
 function getCodeFromUrl() {
@@ -578,6 +605,7 @@ function normalizeSplitData(row) {
     hasPaid: p.hasPaid ?? p.has_paid ?? false,
     status: p.status || 'claimed',
     paidVia: p.paidVia ?? p.paid_via ?? null,
+    claimedItemIds: p.claimedItemIds || p.claimed_item_ids || [],
   }));
   const payMethods = (row.host_payment_methods || []).filter(m => m.isEnabled !== false);
   return {
@@ -600,40 +628,91 @@ function normalizeSplitData(row) {
 function showNameEntry() {
   document.getElementById('loading').classList.add('hidden');
   document.getElementById('name-entry').classList.remove('hidden');
+  document.getElementById('resume-prompt').classList.add('hidden');
   document.getElementById('host-name-preview').textContent = splitData.hostName;
   document.getElementById('restaurant-preview').textContent = splitData.restaurant;
   const input = document.getElementById('name-input');
   const btn = document.getElementById('name-continue-btn');
+  input.value = '';
+  btn.disabled = true;
+  btn.textContent = 'Continue';
   input.addEventListener('input', () => { btn.disabled = input.value.trim().length < 1; });
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !btn.disabled) submitName(); });
   setTimeout(() => input.focus(), 100);
+}
+
+function showFreshNameEntry() {
+  // From resume prompt, skip resume and enter as new person
+  showNameEntry();
 }
 
 async function submitName() {
   const input = document.getElementById('name-input');
   const name = input.value.trim();
   if (!name) return;
-  guestName = name;
-  guestId = generateUUID(); // Create a new UUID since this is a first-time join
-  const btn = document.getElementById('name-continue-btn');
-  btn.disabled = true;
-  btn.textContent = 'Joining...';
-  try {
-    await addParticipantToSplit();
-    // Persist identity so refreshes don't create new ghosts
-    saveStoredGuest(splitCode, guestId, guestName);
-    document.getElementById('name-entry').classList.add('hidden');
-    document.getElementById('main-content').classList.remove('hidden');
-    render();
-  } catch (err) {
-    console.error('Failed to join:', err);
-    btn.disabled = false;
-    btn.textContent = 'Continue';
-    showToast('Could not join the split. Try again.');
+
+  // Check for existing participants with the same name (case-insensitive)
+  const normalized = name.toLowerCase();
+  const matches = splitData.participants.filter(p =>
+    (p.name || '').toLowerCase() === normalized
+  );
+
+  if (matches.length > 0) {
+    // Show resume prompt
+    showResumePrompt(name, matches);
+    return;
   }
+
+  // New guest — but DO NOT register in Supabase yet
+  // Only register when they claim their first item
+  guestId = generateUUID();
+  guestName = name;
+  guestRegistered = false;
+  goToClaimScreen();
 }
 
-async function addParticipantToSplit() {
+function showResumePrompt(name, matches) {
+  document.getElementById('name-entry').classList.add('hidden');
+  document.getElementById('resume-prompt').classList.remove('hidden');
+
+  const container = document.getElementById('resume-candidates');
+  container.innerHTML = '';
+  matches.forEach(m => {
+    const claimedCount = (m.claimedItemIds || []).length;
+    const statusLabel = (m.status === 'pending_confirmation' || m.status === 'pendingConfirmation')
+      ? 'Payment pending'
+      : m.hasPaid ? 'Paid'
+      : claimedCount > 0 ? `${claimedCount} item${claimedCount === 1 ? '' : 's'} claimed`
+      : 'No items claimed yet';
+
+    const card = document.createElement('button');
+    card.className = 'resume-card';
+    card.style.cursor = 'pointer';
+    card.style.width = '100%';
+    card.style.maxWidth = '320px';
+    card.style.fontFamily = 'inherit';
+    card.innerHTML = `
+      <div class="resume-name">That's me — I'm ${escapeHtml(m.name)}</div>
+      <div class="resume-meta">${escapeHtml(statusLabel)}</div>
+    `;
+    card.onclick = () => resumeAs(m.id, m.name);
+    container.appendChild(card);
+  });
+}
+
+function resumeAs(id, name) {
+  guestId = id;
+  guestName = name;
+  guestRegistered = true;  // Already in Supabase
+  saveStoredGuest(splitCode, id, name);
+  goToClaimScreen();
+}
+
+async function registerGuest() {
+  // Called when user takes first real action (e.g. claims first item)
+  // Adds this guest to the participants array in Supabase
+  if (guestRegistered) return;
+
   const latest = await fetchSplit(splitCode);
   if (!latest) throw new Error('Split disappeared');
   rawRow = latest;
@@ -652,6 +731,8 @@ async function addParticipantToSplit() {
     });
   }
   await patchSplit({ participants });
+  guestRegistered = true;
+  saveStoredGuest(splitCode, guestId, guestName);
   splitData.participants = participants;
 }
 
@@ -776,6 +857,11 @@ async function syncClaimsToServer() {
   const localClaimed = new Set(claimedItems);
 
   try {
+    // Register guest in Supabase if not already (happens on first claim)
+    if (!guestRegistered) {
+      await registerGuest();
+    }
+
     const latest = await fetchSplit(splitCode);
     if (!latest) throw new Error('Split disappeared');
 
@@ -1115,6 +1201,7 @@ function showError(msg) {
   document.getElementById('loading').classList.add('hidden');
   document.getElementById('main-content').classList.add('hidden');
   document.getElementById('name-entry').classList.add('hidden');
+  document.getElementById('resume-prompt').classList.add('hidden');
   document.getElementById('error').classList.remove('hidden');
   if (msg) document.getElementById('error-message').textContent = msg;
 }
