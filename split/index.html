@@ -19,9 +19,7 @@
     --shadow: 0 4px 24px rgba(0,0,0,0.08);
     --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
   body {
     font-family: 'DM Sans', sans-serif;
     background: var(--light-gray);
@@ -31,555 +29,287 @@
     position: relative;
     overflow-x: hidden;
   }
-
-  /* LOADING & ERROR STATES */
-  .loading-screen, .error-screen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 40px 20px;
-    text-align: center;
+  .full-screen {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 100vh; padding: 40px 24px; text-align: center;
   }
-
   .spinner {
-    width: 40px;
-    height: 40px;
+    width: 40px; height: 40px;
     border: 3px solid var(--coral-light);
     border-top-color: var(--coral);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
     margin-bottom: 20px;
   }
-
   @keyframes spin { to { transform: rotate(360deg); } }
-
   .loading-text { color: var(--gray); font-size: 15px; }
-
-  .error-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
+  .state-icon { font-size: 48px; margin-bottom: 16px; }
+  .state-title {
+    font-size: 24px; font-weight: 700; color: var(--black);
+    margin-bottom: 8px; letter-spacing: -0.5px;
   }
-
-  .error-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--black);
-    margin-bottom: 8px;
+  .state-message {
+    color: var(--gray); font-size: 15px;
+    max-width: 320px; line-height: 1.5; margin-bottom: 24px;
   }
-
-  .error-message {
-    color: var(--gray);
-    font-size: 15px;
-    max-width: 300px;
-    line-height: 1.5;
+  .name-screen .pig-mascot { font-size: 60px; margin-bottom: 16px; }
+  .name-screen .restaurant-preview {
+    color: var(--coral); font-weight: 600;
+    font-size: 16px; margin-bottom: 24px;
   }
-
-  /* HEADER */
+  .name-input {
+    width: 100%; max-width: 320px;
+    padding: 16px 20px; font-size: 17px; font-family: inherit;
+    border: 2px solid var(--border); border-radius: 14px;
+    background: white; color: var(--black); outline: none;
+    transition: border-color 0.15s; text-align: center; font-weight: 600;
+  }
+  .name-input:focus { border-color: var(--coral); }
+  .primary-btn {
+    width: 100%; max-width: 320px; margin-top: 16px;
+    background: var(--coral); color: white; border: none;
+    padding: 18px; border-radius: 14px;
+    font-size: 17px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(255,107,107,0.3);
+    transition: transform 0.1s; font-family: inherit;
+  }
+  .primary-btn:active { transform: scale(0.97); }
+  .primary-btn:disabled { background: var(--border); color: var(--gray); box-shadow: none; cursor: not-allowed; }
   .header {
     background: var(--coral);
     padding: 52px 20px 32px;
-    position: relative;
-    overflow: hidden;
+    position: relative; overflow: hidden;
   }
-
   .header::before {
-    content: '';
-    position: absolute;
-    bottom: -40px;
-    left: 0;
-    right: 0;
-    height: 80px;
-    background: var(--light-gray);
+    content: ''; position: absolute;
+    bottom: -40px; left: 0; right: 0;
+    height: 80px; background: var(--light-gray);
     border-radius: 50% 50% 0 0 / 100% 100% 0 0;
   }
-
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-
+  .logo { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
   .logo-icon {
-    width: 36px;
-    height: 36px;
+    width: 36px; height: 36px;
     background: rgba(255,255,255,0.25);
     border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     font-size: 18px;
   }
-
   .logo-text {
     font-family: 'DM Serif Display', serif;
-    font-size: 22px;
-    color: white;
-    letter-spacing: -0.3px;
+    font-size: 22px; color: white; letter-spacing: -0.3px;
   }
-
-  .header-info {
-    position: relative;
-    z-index: 1;
-  }
-
+  .header-info { position: relative; z-index: 1; }
   .restaurant-name {
-    font-size: 26px;
-    font-weight: 700;
-    color: white;
-    letter-spacing: -0.5px;
-    margin-bottom: 4px;
+    font-size: 26px; font-weight: 700; color: white;
+    letter-spacing: -0.5px; margin-bottom: 4px;
   }
-
   .split-meta {
-    font-size: 14px;
-    color: rgba(255,255,255,0.9);
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    font-size: 14px; color: rgba(255,255,255,0.9);
+    display: flex; align-items: center; gap: 12px;
   }
-
-  .split-meta span {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+  .guest-badge {
+    position: absolute; top: 20px; right: 20px;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    padding: 6px 12px; border-radius: 20px;
+    font-size: 13px; font-weight: 600; color: white; z-index: 2;
   }
-
-  /* HOST CARD */
   .host-card {
-    margin: 48px 16px 16px;
-    background: white;
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: var(--shadow);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    position: relative;
-    z-index: 2;
+    margin: 48px 16px 16px; background: white;
+    border-radius: 16px; padding: 16px; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 12px;
+    position: relative; z-index: 2;
   }
-
   .host-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
+    width: 44px; height: 44px; border-radius: 50%;
     background: var(--coral-light);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    color: var(--coral);
-    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: var(--coral); font-size: 18px;
   }
-
   .host-info { flex: 1; }
-
-  .host-label {
-    font-size: 12px;
-    color: var(--gray);
-    font-weight: 500;
-    margin-bottom: 2px;
-  }
-
-  .host-name {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--black);
-  }
-
+  .host-label { font-size: 12px; color: var(--gray); font-weight: 500; margin-bottom: 2px; }
+  .host-name { font-size: 16px; font-weight: 600; color: var(--black); }
   .host-total {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--coral);
-    background: var(--coral-light);
-    padding: 8px 14px;
-    border-radius: 10px;
+    font-size: 20px; font-weight: 700; color: var(--coral);
+    background: var(--coral-light); padding: 8px 14px; border-radius: 10px;
   }
-
-  /* SECTION */
   .section-header {
     padding: 20px 20px 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: flex; justify-content: space-between; align-items: center;
   }
-
   .section-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--gray);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
+    font-size: 13px; font-weight: 600; color: var(--gray);
+    text-transform: uppercase; letter-spacing: 0.8px;
   }
-
   .select-all-btn {
-    font-size: 14px;
-    color: var(--coral);
-    font-weight: 600;
-    background: none;
-    border: none;
-    cursor: pointer;
+    font-size: 14px; color: var(--coral); font-weight: 600;
+    background: none; border: none; cursor: pointer;
   }
-
-  /* ITEMS */
-  .items-list {
-    padding: 0 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
+  .items-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
   .item {
-    background: white;
-    border-radius: 14px;
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    cursor: pointer;
-    transition: all 0.15s ease;
+    background: white; border-radius: 14px; padding: 16px;
+    display: flex; align-items: center; gap: 14px;
+    cursor: pointer; transition: all 0.15s ease;
     border: 2px solid transparent;
   }
-
   .item:active { transform: scale(0.98); }
-
-  .item.claimed {
-    background: var(--coral-light);
-    border-color: var(--coral);
-  }
-
-  .item.taken {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
+  .item.claimed { background: var(--coral-light); border-color: var(--coral); }
+  .item.taken { opacity: 0.55; cursor: not-allowed; }
   .item.taken .item-name { text-decoration: line-through; }
-
   .item-check {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
+    width: 26px; height: 26px; border-radius: 50%;
     border: 2px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.15s;
   }
-
-  .item.claimed .item-check {
-    background: var(--coral);
-    border-color: var(--coral);
-  }
-
-  .item.claimed .item-check::after {
-    content: '✓';
-    color: white;
-    font-size: 16px;
-    font-weight: 700;
-  }
-
+  .item.claimed .item-check { background: var(--coral); border-color: var(--coral); }
+  .item.claimed .item-check::after { content: '✓'; color: white; font-size: 16px; font-weight: 700; }
   .item-info { flex: 1; min-width: 0; }
-
-  .item-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--black);
-    margin-bottom: 2px;
-  }
-
-  .item-meta {
-    font-size: 13px;
-    color: var(--gray);
-  }
-
-  .item-price {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--black);
-  }
-
-  /* CLAIMED BY OTHER */
-  .claimed-by {
-    font-size: 11px;
-    color: var(--coral);
-    font-weight: 600;
-    margin-top: 2px;
-  }
-
-  /* PRE-CLAIM STATE */
+  .item-name { font-size: 15px; font-weight: 600; color: var(--black); margin-bottom: 2px; }
+  .item-meta { font-size: 13px; color: var(--gray); }
+  .item-price { font-size: 16px; font-weight: 700; color: var(--black); }
+  .claimed-by { font-size: 11px; color: var(--coral); font-weight: 600; margin-top: 2px; }
   .pre-claim {
-    padding: 24px 20px;
-    text-align: center;
-    color: var(--gray);
-    font-size: 14px;
-    background: white;
-    margin: 16px;
-    border-radius: 14px;
+    padding: 24px 20px; text-align: center;
+    color: var(--gray); font-size: 14px;
+    background: white; margin: 16px; border-radius: 14px;
   }
-
-  /* SUMMARY & PAY */
-  .summary-section {
-    padding: 16px;
-    margin-top: 8px;
-  }
-
+  .summary-section { padding: 16px; margin-top: 8px; }
   .summary-card {
-    background: white;
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: var(--shadow);
+    background: white; border-radius: 16px;
+    padding: 20px; box-shadow: var(--shadow);
   }
-
   .summary-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    font-size: 15px;
-    color: var(--gray);
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; font-size: 15px; color: var(--gray);
   }
-
   .summary-row.total {
-    border-top: 1px solid var(--border);
-    margin-top: 8px;
-    padding-top: 14px;
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--black);
+    border-top: 1px solid var(--border); margin-top: 8px; padding-top: 14px;
+    font-size: 17px; font-weight: 700; color: var(--black);
   }
-
-  .summary-row.total .summary-amount {
-    color: var(--coral);
-    font-size: 24px;
-  }
-
-  .summary-amount {
-    font-weight: 600;
-    color: var(--black);
-  }
-
+  .summary-row.total .summary-amount { color: var(--coral); font-size: 24px; }
+  .summary-amount { font-weight: 600; color: var(--black); }
   .pay-btn {
-    width: calc(100% - 32px);
-    margin: 8px 16px 24px;
-    background: var(--coral);
-    color: white;
-    border: none;
-    padding: 18px;
-    border-radius: 14px;
-    font-size: 17px;
-    font-weight: 700;
-    cursor: pointer;
+    width: calc(100% - 32px); margin: 8px 16px 24px;
+    background: var(--coral); color: white; border: none;
+    padding: 18px; border-radius: 14px;
+    font-size: 17px; font-weight: 700; cursor: pointer;
     box-shadow: 0 4px 16px rgba(255,107,107,0.3);
-    transition: transform 0.1s;
+    transition: transform 0.1s; font-family: inherit;
   }
-
   .pay-btn:active { transform: scale(0.97); }
-
-  .pay-btn:disabled {
-    background: var(--border);
-    color: var(--gray);
-    box-shadow: none;
-    cursor: not-allowed;
-  }
-
-  /* PAYMENT OPTIONS */
-  .payment-options {
-    padding: 0 16px 24px;
-    display: none;
-  }
-
+  .pay-btn:disabled { background: var(--border); color: var(--gray); box-shadow: none; cursor: not-allowed; }
+  .payment-options { padding: 0 16px 24px; display: none; }
   .payment-options.visible { display: block; }
-
   .payment-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--gray);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
+    font-size: 13px; font-weight: 600; color: var(--gray);
+    text-transform: uppercase; letter-spacing: 0.8px;
     padding: 8px 4px 12px;
   }
-
-  .payment-methods {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
+  .payment-methods { display: flex; flex-direction: column; gap: 8px; }
   .payment-method {
-    background: white;
-    border-radius: 14px;
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    cursor: pointer;
-    text-decoration: none;
-    color: inherit;
-    border: 1px solid var(--border);
-    transition: all 0.15s;
+    background: white; border-radius: 14px; padding: 16px;
+    display: flex; align-items: center; gap: 14px;
+    cursor: pointer; text-decoration: none; color: inherit;
+    border: 1px solid var(--border); transition: all 0.15s;
   }
-
   .payment-method:active { transform: scale(0.98); }
-
   .payment-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    font-weight: 700;
-    color: white;
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; color: white;
   }
-
   .payment-icon.venmo { background: #3D95CE; }
-  .payment-icon.cashapp { background: #00D632; }
+  .payment-icon.cashapp, .payment-icon.cash-app { background: #00D632; }
   .payment-icon.zelle { background: #6D1ED4; }
   .payment-icon.paypal { background: #003087; }
-  .payment-icon.apple-cash { background: #000000; }
-
+  .payment-icon.apple-cash, .payment-icon.applecash { background: #000000; }
   .payment-info { flex: 1; }
-
-  .payment-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--black);
-  }
-
-  .payment-handle {
-    font-size: 13px;
-    color: var(--gray);
-  }
-
-  .payment-arrow {
-    color: var(--gray);
-    font-size: 20px;
-  }
-
-  /* GET APP BANNER */
+  .payment-name { font-size: 15px; font-weight: 600; color: var(--black); }
+  .payment-handle { font-size: 13px; color: var(--gray); }
+  .payment-arrow { color: var(--gray); font-size: 20px; }
   .get-app-banner {
     background: linear-gradient(135deg, var(--coral) 0%, var(--coral-dark) 100%);
-    margin: 16px;
-    padding: 18px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    color: white;
-    box-shadow: 0 4px 20px rgba(255,107,107,0.3);
+    margin: 16px; padding: 18px; border-radius: 16px;
+    display: flex; align-items: center; gap: 14px;
+    color: white; box-shadow: 0 4px 20px rgba(255,107,107,0.3);
   }
-
   .app-icon {
-    width: 48px;
-    height: 48px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    flex-shrink: 0;
+    width: 48px; height: 48px;
+    background: rgba(255,255,255,0.2); border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
   }
-
   .app-info { flex: 1; }
-
-  .app-title {
-    font-size: 15px;
-    font-weight: 700;
-    margin-bottom: 2px;
-  }
-
-  .app-subtitle {
-    font-size: 13px;
-    opacity: 0.9;
-  }
-
+  .app-title { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+  .app-subtitle { font-size: 13px; opacity: 0.9; }
   .app-btn {
-    background: white;
-    color: var(--coral);
-    padding: 10px 18px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 700;
-    text-decoration: none;
+    background: white; color: var(--coral);
+    padding: 10px 18px; border-radius: 20px;
+    font-size: 14px; font-weight: 700; text-decoration: none;
   }
-
-  /* SUCCESS */
   .success-screen {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: white;
-    z-index: 100;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-    text-align: center;
+    display: none; position: fixed; inset: 0;
+    background: white; z-index: 100;
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 20px; text-align: center;
   }
-
   .success-screen.visible { display: flex; }
-
   .success-icon {
-    width: 80px;
-    height: 80px;
-    background: var(--coral);
+    width: 80px; height: 80px; background: var(--coral);
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 24px;
-    font-size: 40px;
-    color: white;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 24px; font-size: 40px; color: white;
   }
-
-  .success-title {
-    font-size: 28px;
-    font-weight: 700;
-    margin-bottom: 8px;
+  .success-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .success-message { font-size: 16px; color: var(--gray); margin-bottom: 32px; max-width: 280px; }
+  .success-amount { font-size: 40px; font-weight: 700; color: var(--coral); margin: 16px 0; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--black); color: white;
+    padding: 12px 20px; border-radius: 24px;
+    font-size: 14px; font-weight: 600; z-index: 200;
+    transition: transform 0.3s ease; max-width: 90%;
   }
-
-  .success-message {
-    font-size: 16px;
-    color: var(--gray);
-    margin-bottom: 32px;
-    max-width: 280px;
-  }
-
-  .success-amount {
-    font-size: 40px;
-    font-weight: 700;
-    color: var(--coral);
-    margin: 16px 0;
-  }
-
+  .toast.visible { transform: translateX(-50%) translateY(0); }
   .hidden { display: none !important; }
+  .sync-dot {
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; background: #00D632;
+    margin-left: 6px; animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 </style>
 </head>
 <body>
 
-<!-- LOADING STATE -->
-<div id="loading" class="loading-screen">
+<div id="loading" class="full-screen">
   <div class="spinner"></div>
   <div class="loading-text">Loading your split...</div>
 </div>
 
-<!-- ERROR STATE -->
-<div id="error" class="error-screen hidden">
-  <div class="error-icon">🐷</div>
-  <div class="error-title">Split not found</div>
-  <div class="error-message" id="error-message">
+<div id="error" class="full-screen hidden">
+  <div class="state-icon">🐷</div>
+  <div class="state-title">Split not found</div>
+  <div class="state-message" id="error-message">
     This split link is invalid or has expired. Ask the host to send you a new one.
   </div>
 </div>
 
-<!-- MAIN CONTENT -->
+<div id="name-entry" class="full-screen name-screen hidden">
+  <div class="pig-mascot">🐷</div>
+  <div class="state-title">What's your name?</div>
+  <div class="state-message">So <span id="host-name-preview">the host</span> knows who ordered what.</div>
+  <div class="restaurant-preview" id="restaurant-preview"></div>
+  <input type="text" id="name-input" class="name-input" placeholder="Your name" autocomplete="given-name" maxlength="30" />
+  <button class="primary-btn" id="name-continue-btn" onclick="submitName()" disabled>Continue</button>
+</div>
+
 <div id="main-content" class="hidden">
   <div class="header">
+    <div class="guest-badge" id="guest-badge"></div>
     <div class="logo">
       <div class="logo-icon">🐷</div>
       <div class="logo-text">Pigge</div>
@@ -612,7 +342,7 @@
   </div>
 
   <div class="section-header">
-    <div class="section-title">Tap to claim your items</div>
+    <div class="section-title">Tap to claim your items<span class="sync-dot" title="Live sync"></span></div>
     <button class="select-all-btn" onclick="toggleSelectAll()">Select All</button>
   </div>
 
@@ -625,29 +355,13 @@
   <div id="claim-state" class="hidden">
     <div class="summary-section">
       <div class="summary-card">
-        <div class="summary-row">
-          <span>Subtotal</span>
-          <span class="summary-amount" id="subtotal-display">$0.00</span>
-        </div>
-        <div class="summary-row">
-          <span>Tax (your share)</span>
-          <span class="summary-amount" id="tax-display">$0.00</span>
-        </div>
-        <div class="summary-row">
-          <span>Tip (your share)</span>
-          <span class="summary-amount" id="tip-display">$0.00</span>
-        </div>
-        <div class="summary-row total">
-          <span>You owe</span>
-          <span class="summary-amount" id="your-total">$0.00</span>
-        </div>
+        <div class="summary-row"><span>Subtotal</span><span class="summary-amount" id="subtotal-display">$0.00</span></div>
+        <div class="summary-row"><span>Tax (your share)</span><span class="summary-amount" id="tax-display">$0.00</span></div>
+        <div class="summary-row"><span>Tip (your share)</span><span class="summary-amount" id="tip-display">$0.00</span></div>
+        <div class="summary-row total"><span>You owe</span><span class="summary-amount" id="your-total">$0.00</span></div>
       </div>
     </div>
-
-    <button id="pay-btn" class="pay-btn" onclick="togglePayment()">
-      💸 Claim & Pay
-    </button>
-
+    <button id="pay-btn" class="pay-btn" onclick="togglePayment()">💸 Claim & Pay</button>
     <div id="payment-options" class="payment-options">
       <div class="payment-title">Choose how to pay</div>
       <div class="payment-methods" id="payment-methods"></div>
@@ -655,52 +369,41 @@
   </div>
 </div>
 
-<!-- SUCCESS SCREEN -->
 <div id="success-screen" class="success-screen">
   <div class="success-icon">✓</div>
   <div class="success-title">You're all set!</div>
   <div class="success-amount" id="success-amount"></div>
   <div class="success-message">
-    We've notified the host. Get the Pigge app to track your splits with friends.
+    We've let <span id="success-host">the host</span> know. Get the Pigge app to track splits with friends.
   </div>
   <a href="#" class="app-btn" style="background: var(--coral); color: white; padding: 14px 28px;">Get the App</a>
 </div>
 
+<div id="toast" class="toast"></div>
+
 <script>
-// ============================================
-// SUPABASE CONFIG
-// ============================================
 const SUPABASE_URL = 'https://biaylcqwowuukgmblfew.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpYXlsY3F3b3d1dWtnbWJsZmV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4ODIxMDcsImV4cCI6MjA5MjQ1ODEwN30.jkGPlBoObHmvU-1w_lVC_c67Vk7FPLOaC0em3AFmejo';
 
-// ============================================
-// STATE
-// ============================================
 let splitData = null;
+let rawRow = null;
 let claimedItems = new Set();
 let paymentVisible = false;
-let guestId = null;
+let guestId = generateUUID();
+let guestName = null;
+let splitCode = null;
+let saving = false;
+let claimSyncTimer = null;
 
-// ============================================
-// INITIALIZATION
-// ============================================
 async function init() {
-  const code = getCodeFromUrl();
-
-  if (!code) {
-    showError('No split code found in the URL.');
-    return;
-  }
-
+  splitCode = getCodeFromUrl();
+  if (!splitCode) { showError('No split code found in the URL.'); return; }
   try {
-    const data = await fetchSplit(code);
-    if (!data) {
-      showError('This split link is invalid or has expired.');
-      return;
-    }
+    const data = await fetchSplit(splitCode);
+    if (!data) { showError('This split link is invalid or has expired.'); return; }
+    rawRow = data;
     splitData = normalizeSplitData(data);
-    guestId = getOrCreateGuestId(code);
-    render();
+    showNameEntry();
   } catch (err) {
     console.error('Init error:', err);
     showError('Could not load split. Please check your connection and try again.');
@@ -712,18 +415,18 @@ function getCodeFromUrl() {
   return match ? match[1].toUpperCase() : null;
 }
 
-function getOrCreateGuestId(code) {
-  // Ephemeral guest ID stored in memory only (no localStorage)
-  return 'guest-' + Math.random().toString(36).slice(2, 10);
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 async function fetchSplit(code) {
   const url = `${SUPABASE_URL}/rest/v1/split_sessions?room_code=eq.${code}&select=*`;
   const res = await fetch(url, {
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-    }
+    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const rows = await res.json();
@@ -731,18 +434,15 @@ async function fetchSplit(code) {
 }
 
 function normalizeSplitData(row) {
-  // Handle varying backend field names defensively
   const items = (row.items || []).map(i => ({
-    id: i.id,
-    name: i.name,
+    id: i.id, name: i.name,
     price: Number(i.price) || 0,
     quantity: i.quantity || 1,
     claimedBy: i.claimedBy || i.claimed_by || [],
     isSplit: i.isSplit || i.is_split || false,
   }));
   const participants = (row.participants || []).map(p => ({
-    id: p.id,
-    name: p.name,
+    id: p.id, name: p.name,
     isGuest: p.isGuest ?? p.is_guest ?? true,
   }));
   const payMethods = (row.host_payment_methods || []).filter(m => m.isEnabled !== false);
@@ -754,47 +454,104 @@ function normalizeSplitData(row) {
     tax: Number(row.tax) || 0,
     tip: Number(row.tip) || 0,
     total: (Number(row.subtotal) || 0) + (Number(row.tax) || 0) + (Number(row.tip) || 0),
-    items,
-    participants,
+    items, participants,
     paymentMethods: payMethods,
     finalized: !!row.finalized,
   };
 }
 
-// ============================================
-// RENDER
-// ============================================
-function render() {
+function showNameEntry() {
   document.getElementById('loading').classList.add('hidden');
-  document.getElementById('main-content').classList.remove('hidden');
+  document.getElementById('name-entry').classList.remove('hidden');
+  document.getElementById('host-name-preview').textContent = splitData.hostName;
+  document.getElementById('restaurant-preview').textContent = splitData.restaurant;
+  const input = document.getElementById('name-input');
+  const btn = document.getElementById('name-continue-btn');
+  input.addEventListener('input', () => { btn.disabled = input.value.trim().length < 1; });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !btn.disabled) submitName(); });
+  setTimeout(() => input.focus(), 100);
+}
 
+async function submitName() {
+  const input = document.getElementById('name-input');
+  const name = input.value.trim();
+  if (!name) return;
+  guestName = name;
+  const btn = document.getElementById('name-continue-btn');
+  btn.disabled = true;
+  btn.textContent = 'Joining...';
+  try {
+    await addParticipantToSplit();
+    document.getElementById('name-entry').classList.add('hidden');
+    document.getElementById('main-content').classList.remove('hidden');
+    render();
+  } catch (err) {
+    console.error('Failed to join:', err);
+    btn.disabled = false;
+    btn.textContent = 'Continue';
+    showToast('Could not join the split. Try again.');
+  }
+}
+
+async function addParticipantToSplit() {
+  const latest = await fetchSplit(splitCode);
+  if (!latest) throw new Error('Split disappeared');
+  rawRow = latest;
+  const participants = Array.isArray(latest.participants) ? [...latest.participants] : [];
+  const exists = participants.find(p => p.id === guestId);
+  if (!exists) {
+    participants.push({
+      id: guestId, name: guestName, isGuest: true, userId: null,
+      status: 'claimed', claimedItemIds: [],
+      itemSubtotal: 0, taxShare: 0, tipShare: 0,
+      hasPaid: false, paidAt: null, paidVia: null,
+      assignedColor: (participants.length % 8) + 1,
+      autoRemindersEnabled: true, lastReminderLevel: 0,
+      lastReminderDate: null, phone: null, email: null,
+      requestSent: false, partialPaidAmount: 0,
+    });
+  }
+  await patchSplit({ participants });
+  splitData.participants = participants;
+}
+
+function render() {
   document.getElementById('restaurant-name').textContent = splitData.restaurant;
   document.getElementById('item-count').textContent = splitData.items.length;
   document.getElementById('people-count').textContent = splitData.participants.length || 1;
   document.getElementById('host-name').textContent = splitData.hostName;
   document.getElementById('host-avatar').textContent = (splitData.hostName[0] || 'H').toUpperCase();
   document.getElementById('host-total').textContent = `$${splitData.total.toFixed(2)}`;
-
+  document.getElementById('guest-badge').textContent = `You: ${guestName}`;
+  document.getElementById('success-host').textContent = splitData.hostName;
   renderItems();
   updateSummary();
+  startPolling();
 }
 
 function renderItems() {
   const list = document.getElementById('items-list');
   list.innerHTML = '';
-
   splitData.items.forEach(item => {
-    const isTaken = item.claimedBy && item.claimedBy.length > 0 && !item.claimedBy.includes(guestId) && !item.isSplit;
+    const claimedByOthers = (item.claimedBy || []).filter(id => id !== guestId);
+    const isTaken = claimedByOthers.length > 0 && !item.isSplit;
+    const isMine = (item.claimedBy || []).includes(guestId);
+    if (isMine) claimedItems.add(item.id);
     const div = document.createElement('div');
-    div.className = 'item' + (isTaken ? ' taken' : '');
+    div.className = 'item' + (isTaken ? ' taken' : '') + (isMine ? ' claimed' : '');
     div.id = `item-${item.id}`;
     div.onclick = () => { if (!isTaken) toggleItem(item.id); };
+    let claimedLabel = '';
+    if (isTaken) {
+      const claimer = splitData.participants.find(p => claimedByOthers.includes(p.id));
+      claimedLabel = `<div class="claimed-by">Claimed by ${claimer ? escapeHtml(claimer.name) : 'someone'}</div>`;
+    }
     div.innerHTML = `
       <div class="item-check"></div>
       <div class="item-info">
         <div class="item-name">${escapeHtml(item.name)}</div>
         <div class="item-meta">Qty ${item.quantity}</div>
-        ${isTaken ? `<div class="claimed-by">Claimed</div>` : ''}
+        ${claimedLabel}
       </div>
       <div class="item-price">$${item.price.toFixed(2)}</div>
     `;
@@ -808,53 +565,115 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// ============================================
-// CLAIMING
-// ============================================
-function toggleItem(id) {
+async function toggleItem(id) {
   const card = document.getElementById(`item-${id}`);
-  if (!card || card.classList.contains('taken')) return;
-
-  if (claimedItems.has(id)) {
-    claimedItems.delete(id);
-    card.classList.remove('claimed');
-  } else {
-    claimedItems.add(id);
-    card.classList.add('claimed');
-  }
+  if (!card || card.classList.contains('taken') || saving) return;
+  const wasClaimed = claimedItems.has(id);
+  if (wasClaimed) { claimedItems.delete(id); card.classList.remove('claimed'); }
+  else { claimedItems.add(id); card.classList.add('claimed'); }
   updateSummary();
+  scheduleClaimSync();
 }
 
 function toggleSelectAll() {
   const available = splitData.items.filter(i => {
-    return !(i.claimedBy && i.claimedBy.length > 0 && !i.claimedBy.includes(guestId) && !i.isSplit);
+    const otherClaims = (i.claimedBy || []).filter(id => id !== guestId);
+    return !(otherClaims.length > 0 && !i.isSplit);
   });
   const allClaimed = available.every(i => claimedItems.has(i.id));
   available.forEach(item => {
     const card = document.getElementById(`item-${item.id}`);
     if (!card) return;
-    if (allClaimed) {
-      claimedItems.delete(item.id);
-      card.classList.remove('claimed');
-    } else {
-      claimedItems.add(item.id);
-      card.classList.add('claimed');
-    }
+    if (allClaimed) { claimedItems.delete(item.id); card.classList.remove('claimed'); }
+    else { claimedItems.add(item.id); card.classList.add('claimed'); }
   });
   updateSummary();
+  scheduleClaimSync();
+}
+
+function scheduleClaimSync() {
+  clearTimeout(claimSyncTimer);
+  claimSyncTimer = setTimeout(syncClaimsToServer, 600);
+}
+
+async function syncClaimsToServer() {
+  if (saving) { scheduleClaimSync(); return; }
+  saving = true;
+  try {
+    const latest = await fetchSplit(splitCode);
+    if (!latest) throw new Error('Split disappeared');
+    rawRow = latest;
+    const updatedItems = (latest.items || []).map(i => {
+      const claimedBy = Array.isArray(i.claimedBy) ? [...i.claimedBy] : [];
+      const idx = claimedBy.indexOf(guestId);
+      if (claimedItems.has(i.id)) { if (idx === -1) claimedBy.push(guestId); }
+      else { if (idx !== -1) claimedBy.splice(idx, 1); }
+      return { ...i, claimedBy };
+    });
+    const mySubtotal = getYourSubtotal();
+    const ratio = splitData.subtotal > 0 ? mySubtotal / splitData.subtotal : 0;
+    const myTax = splitData.tax * ratio;
+    const myTip = splitData.tip * ratio;
+    const updatedParticipants = (latest.participants || []).map(p => {
+      if (p.id !== guestId) return p;
+      return { ...p, claimedItemIds: Array.from(claimedItems),
+        itemSubtotal: mySubtotal, taxShare: myTax, tipShare: myTip };
+    });
+    await patchSplit({ items: updatedItems, participants: updatedParticipants });
+  } catch (err) {
+    console.error('Sync failed:', err);
+    showToast('Connection issue — changes may not be saved');
+  } finally {
+    saving = false;
+  }
+}
+
+async function patchSplit(fields) {
+  const url = `${SUPABASE_URL}/rest/v1/split_sessions?room_code=eq.${splitCode}`;
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify({ ...fields, updated_at: new Date().toISOString() }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    console.error('PATCH failed:', res.status, text);
+    throw new Error(`PATCH ${res.status}`);
+  }
+}
+
+function startPolling() {
+  setInterval(async () => {
+    if (saving) return;
+    try {
+      const latest = await fetchSplit(splitCode);
+      if (!latest) return;
+      if (!rawRow || latest.updated_at !== rawRow.updated_at) {
+        rawRow = latest;
+        const before = JSON.stringify(splitData.items.map(i => i.claimedBy));
+        splitData = normalizeSplitData(latest);
+        const after = JSON.stringify(splitData.items.map(i => i.claimedBy));
+        if (before !== after) {
+          claimedItems = new Set();
+          splitData.items.forEach(i => {
+            if ((i.claimedBy || []).includes(guestId)) claimedItems.add(i.id);
+          });
+          renderItems();
+          updateSummary();
+        }
+      }
+    } catch (e) {}
+  }, 4000);
 }
 
 function getYourSubtotal() {
-  return splitData.items
-    .filter(i => claimedItems.has(i.id))
+  return splitData.items.filter(i => claimedItems.has(i.id))
     .reduce((sum, i) => sum + i.price, 0);
-}
-
-function getYourTotal() {
-  const sub = getYourSubtotal();
-  if (splitData.subtotal === 0) return sub;
-  const ratio = sub / splitData.subtotal;
-  return sub + (splitData.tax * ratio) + (splitData.tip * ratio);
 }
 
 function updateSummary() {
@@ -863,7 +682,6 @@ function updateSummary() {
   const tax = splitData.tax * ratio;
   const tip = splitData.tip * ratio;
   const total = sub + tax + tip;
-
   if (claimedItems.size > 0) {
     document.getElementById('pre-claim-state').classList.add('hidden');
     document.getElementById('claim-state').classList.remove('hidden');
@@ -881,9 +699,6 @@ function updateSummary() {
   }
 }
 
-// ============================================
-// PAYMENT
-// ============================================
 function togglePayment() {
   paymentVisible = !paymentVisible;
   const opts = document.getElementById('payment-options');
@@ -907,23 +722,23 @@ function renderPaymentMethods(amount) {
   const container = document.getElementById('payment-methods');
   container.innerHTML = '';
   const methods = splitData.paymentMethods || [];
-
   if (methods.length === 0) {
-    container.innerHTML = '<div class="pre-claim" style="margin:0">Host has not set up payment methods yet.</div>';
+    container.innerHTML = '<div class="pre-claim" style="margin:0">Host hasn\'t set up payment methods yet.</div>';
     return;
   }
-
   methods.forEach(m => {
     const platform = (m.platform || '').toLowerCase();
     const handle = m.handle || '';
     const url = buildPaymentUrl(platform, handle, amount);
     const cssClass = platform.replace(/\s+/g, '-');
     const emoji = getEmoji(platform);
-
     const a = document.createElement('a');
     a.href = url;
     a.className = 'payment-method';
-    a.onclick = () => setTimeout(showSuccess, 600);
+    a.onclick = async () => {
+      await markAsPaid(m.platform);
+      setTimeout(showSuccess, 600);
+    };
     a.innerHTML = `
       <div class="payment-icon ${cssClass}">${emoji}</div>
       <div class="payment-info">
@@ -941,20 +756,15 @@ function buildPaymentUrl(platform, handle, amount) {
   const amt = amount.toFixed(2);
   const h = handle.replace(/^[@$]/, '');
   switch (platform) {
-    case 'venmo':
-      return `https://venmo.com/${h}?txn=pay&amount=${amt}&note=${encodeURIComponent(note)}`;
+    case 'venmo': return `https://venmo.com/${h}?txn=pay&amount=${amt}&note=${encodeURIComponent(note)}`;
     case 'cash app':
-    case 'cashapp':
-      return `https://cash.app/$${h}/${amt}`;
-    case 'zelle':
-      return `mailto:${h}?subject=${encodeURIComponent('Zelle $' + amt)}`;
-    case 'paypal':
-      return `https://paypal.me/${h}/${amt}`;
+    case 'cashapp': return `https://cash.app/$${h}/${amt}`;
+    case 'zelle': return `mailto:${h}?subject=${encodeURIComponent('Zelle $' + amt)}`;
+    case 'paypal': return `https://paypal.me/${h}/${amt}`;
     case 'apple cash':
     case 'apple-cash':
-      return `sms:${h}&body=${encodeURIComponent('Apple Cash $' + amt + ' for ' + splitData.restaurant)}`;
-    default:
-      return '#';
+    case 'applecash': return `sms:${h}&body=${encodeURIComponent('Apple Cash $' + amt + ' for ' + splitData.restaurant)}`;
+    default: return '#';
   }
 }
 
@@ -966,26 +776,43 @@ function getEmoji(platform) {
     case 'zelle': return 'Z';
     case 'paypal': return 'P';
     case 'apple cash':
-    case 'apple-cash': return '';
+    case 'apple-cash':
+    case 'applecash': return '';
     default: return '$';
   }
+}
+
+async function markAsPaid(platform) {
+  try {
+    const latest = await fetchSplit(splitCode);
+    if (!latest) return;
+    const participants = (latest.participants || []).map(p => {
+      if (p.id !== guestId) return p;
+      return { ...p, hasPaid: true, paidAt: new Date().toISOString(), paidVia: platform };
+    });
+    await patchSplit({ participants });
+  } catch (e) { console.error('markAsPaid failed', e); }
 }
 
 function showSuccess() {
   document.getElementById('success-screen').classList.add('visible');
 }
 
-// ============================================
-// ERROR HANDLING
-// ============================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), 3000);
+}
+
 function showError(msg) {
   document.getElementById('loading').classList.add('hidden');
   document.getElementById('main-content').classList.add('hidden');
+  document.getElementById('name-entry').classList.add('hidden');
   document.getElementById('error').classList.remove('hidden');
   if (msg) document.getElementById('error-message').textContent = msg;
 }
 
-// GO!
 init();
 </script>
 </body>
