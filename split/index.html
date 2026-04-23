@@ -1063,7 +1063,11 @@ function renderPaymentMethods(amount) {
     a.href = url;
     a.className = 'payment-method';
     a.onclick = (e) => {
-      markAsPending(m.platform, amount).catch(err => console.error(err));
+      // Fire PATCH with keepalive so the request survives navigation to the payment app
+      markAsPendingKeepalive(m.platform, amount);
+      // Update local state immediately so UI reflects pending
+      paymentStatus = 'pending';
+      updatePaymentBanners();
       setTimeout(showSuccessPending, 600);
     };
     a.innerHTML = `
@@ -1128,6 +1132,58 @@ async function markAsPending(platform, amount) {
     });
     await patchSplit({ participants });
   } catch (e) { console.error('markAsPending failed', e); }
+}
+
+// Uses fetch with keepalive: true so the request survives page navigation
+// (e.g. when tapping Venmo link which navigates away from the page).
+// This trades off: we can't read the current participants snapshot, so
+// we just send our own participant update with the merge flag unused —
+// the iOS realtime subscription will pick it up and merge properly.
+function markAsPendingKeepalive(platform, amount) {
+  // Build a participants array with just our updated entry; the server-side
+  // iOS app will receive the PATCH and applyRemoteRow will merge it with
+  // the host and any other guests.
+  const mySubtotal = getYourSubtotal();
+  const ratio = splitData.subtotal > 0 ? mySubtotal / splitData.subtotal : 0;
+  const myTax = splitData.tax * ratio;
+  const myTip = splitData.tip * ratio;
+
+  // Build the full updated participants array from current known state
+  const updatedParticipants = (splitData.participants || []).map(p => {
+    if (p.id !== guestId) return p;
+    return {
+      ...p,
+      hasPaid: false,
+      status: 'pending_confirmation',
+      paidVia: platform,
+      paidAt: new Date().toISOString(),
+      partialPaidAmount: amount,
+      itemSubtotal: mySubtotal,
+      taxShare: myTax,
+      tipShare: myTip,
+      claimedItemIds: Array.from(claimedItems),
+    };
+  });
+
+  const url = `${SUPABASE_URL}/rest/v1/split_sessions?room_code=eq.${splitCode}`;
+  try {
+    fetch(url, {
+      method: 'PATCH',
+      keepalive: true,
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        participants: updatedParticipants,
+        updated_at: new Date().toISOString(),
+      }),
+    });
+  } catch (e) {
+    console.error('markAsPendingKeepalive failed', e);
+  }
 }
 
 function updatePaymentBanners() {
