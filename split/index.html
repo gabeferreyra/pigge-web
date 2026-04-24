@@ -478,8 +478,8 @@
   <div id="pending-banner" class="pending-banner hidden">
     <div class="pending-icon" id="pending-icon">⏱</div>
     <div class="pending-text">
-      <div id="pending-title">Payment initiated</div>
-      <div class="pending-subtitle" id="pending-subtitle">Waiting for the host to confirm they received it</div>
+      <div id="pending-title">Payment sent</div>
+      <div class="pending-subtitle" id="pending-subtitle">Waiting for the host to mark you as paid</div>
     </div>
   </div>
 
@@ -521,15 +521,15 @@
 </div>
 
 <div id="success-screen" class="success-screen">
-  <div class="success-icon pending" id="success-icon">⏱</div>
+  <div class="success-icon pending" id="success-icon">✓</div>
   <div class="success-title" id="success-title">Payment sent!</div>
   <div class="success-amount" id="success-amount"></div>
   <div class="success-status-badge" id="success-badge">
     <span class="success-status-dot"></span>
-    <span id="success-badge-text">Waiting for host to confirm</span>
+    <span id="success-badge-text">Waiting for host</span>
   </div>
   <div class="success-message" id="success-message">
-    <span id="success-host">The host</span> will confirm they received your payment. This helps make sure everyone paid correctly.
+    <span id="success-host">The host</span> will mark you as paid once the money lands in their <span id="success-via">payment app</span>. You can close this page — we'll remember you're done.
   </div>
   <button class="done-btn" onclick="hideSuccess()">Done</button>
 </div>
@@ -1327,7 +1327,7 @@ function renderPaymentMethods(amount) {
       // Update local state immediately so UI reflects pending
       paymentStatus = 'pending';
       updatePaymentBanners();
-      setTimeout(showSuccessPending, 600);
+      setTimeout(() => showSuccessPending(m.platform), 600);
     };
     a.innerHTML = `
       <div class="payment-icon ${cssClass}">${emoji}</div>
@@ -1452,15 +1452,15 @@ function updatePaymentBanners() {
   const bannerSubtitle = document.getElementById('pending-subtitle');
   if (paymentStatus === 'pending') {
     banner.classList.remove('hidden', 'confirmed');
-    bannerIcon.textContent = '⏱';
-    bannerTitle.textContent = 'Payment initiated';
-    bannerSubtitle.textContent = `Waiting for ${splitData.hostName} to confirm they received it`;
+    bannerIcon.textContent = '✓';
+    bannerTitle.textContent = 'Payment sent';
+    bannerSubtitle.textContent = `${splitData.hostName} will mark you as paid when the money lands`;
   } else if (paymentStatus === 'confirmed') {
     banner.classList.remove('hidden');
     banner.classList.add('confirmed');
     bannerIcon.textContent = '✓';
-    bannerTitle.textContent = 'Payment confirmed';
-    bannerSubtitle.textContent = `${splitData.hostName} confirmed receipt — you're all squared up`;
+    bannerTitle.textContent = "You're paid up";
+    bannerSubtitle.textContent = `${splitData.hostName} marked you as paid — all done`;
   } else {
     banner.classList.add('hidden');
   }
@@ -1476,29 +1476,30 @@ function updatePaymentBanners() {
   renderItems();
 }
 
-function showSuccessPending() {
+function showSuccessPending(platform) {
   document.getElementById('success-screen').classList.add('visible');
   const icon = document.getElementById('success-icon');
   icon.className = 'success-icon pending';
-  icon.textContent = '⏱';
+  icon.textContent = '✓';
   document.getElementById('success-title').textContent = 'Payment sent!';
   const badge = document.getElementById('success-badge');
   badge.classList.remove('confirmed');
-  document.getElementById('success-badge-text').textContent = 'Waiting for host to confirm';
+  document.getElementById('success-badge-text').textContent = 'Waiting for host';
+  const via = platform ? escapeHtml(platform) : 'payment app';
   document.getElementById('success-message').innerHTML =
-    `<span id="success-host">${escapeHtml(splitData.hostName)}</span> will confirm they received your payment. This helps make sure everyone paid correctly.`;
+    `<span id="success-host">${escapeHtml(splitData.hostName)}</span> will mark you as paid once the money lands in their <strong>${via}</strong>. You can close this page — we'll remember you're done.`;
 }
 
 function flipSuccessToConfirmed() {
   const icon = document.getElementById('success-icon');
   icon.className = 'success-icon confirmed';
   icon.textContent = '✓';
-  document.getElementById('success-title').textContent = 'You\'re all set!';
+  document.getElementById('success-title').textContent = "You're all set!";
   const badge = document.getElementById('success-badge');
   badge.classList.add('confirmed');
-  document.getElementById('success-badge-text').textContent = 'Payment confirmed';
+  document.getElementById('success-badge-text').textContent = 'Paid';
   document.getElementById('success-message').innerHTML =
-    `${escapeHtml(splitData.hostName)} confirmed they received your payment. Thanks for splitting with Pigge!`;
+    `${escapeHtml(splitData.hostName)} marked you as paid. Thanks for splitting with Pigge! 🐷`;
 }
 
 function hideSuccess() {
