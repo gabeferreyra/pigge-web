@@ -414,6 +414,432 @@
   @keyframes fadein {
     from { opacity: 0; }
     to { opacity: 1; }
+  }<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pigge — Claim Your Items</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --coral: #FF6B6B;
+    --coral-light: #FFF0EE;
+    --coral-dark: #E55555;
+    --black: #111111;
+    --gray: #8E8E93;
+    --light-gray: #F5F5F7;
+    --white: #FFFFFF;
+    --border: #EBEBEB;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+    --warning: #FFA500;
+    --success: #00C853;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--light-gray);
+    min-height: 100vh;
+    max-width: 430px;
+    margin: 0 auto;
+    position: relative;
+    overflow-x: hidden;
+  }
+  .full-screen {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 100vh; padding: 40px 24px; text-align: center;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--coral-light);
+    border-top-color: var(--coral);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: var(--gray); font-size: 15px; }
+  .state-icon { font-size: 48px; margin-bottom: 16px; }
+  .state-title {
+    font-size: 24px; font-weight: 700; color: var(--black);
+    margin-bottom: 8px; letter-spacing: -0.5px;
+  }
+  .state-message {
+    color: var(--gray); font-size: 15px;
+    max-width: 320px; line-height: 1.5; margin-bottom: 24px;
+  }
+  .name-screen .pig-mascot { font-size: 60px; margin-bottom: 16px; }
+  .name-screen .restaurant-preview {
+    color: var(--coral); font-weight: 600;
+    font-size: 16px; margin-bottom: 24px;
+  }
+  .name-input {
+    width: 100%; max-width: 320px;
+    padding: 16px 20px; font-size: 17px; font-family: inherit;
+    border: 2px solid var(--border); border-radius: 14px;
+    background: white; color: var(--black); outline: none;
+    transition: border-color 0.15s; text-align: center; font-weight: 600;
+  }
+  .name-input:focus { border-color: var(--coral); }
+  .primary-btn {
+    width: 100%; max-width: 320px; margin-top: 16px;
+    background: var(--coral); color: white; border: none;
+    padding: 18px; border-radius: 14px;
+    font-size: 17px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(255,107,107,0.3);
+    transition: transform 0.1s; font-family: inherit;
+  }
+  .primary-btn:active { transform: scale(0.97); }
+  .primary-btn:disabled { background: var(--border); color: var(--gray); box-shadow: none; cursor: not-allowed; }
+  .secondary-btn {
+    width: 100%; max-width: 320px; margin-top: 12px;
+    background: white; color: var(--black);
+    border: 1px solid var(--border);
+    padding: 16px; border-radius: 14px;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .header {
+    background: var(--coral);
+    padding: 52px 20px 32px;
+    position: relative; overflow: hidden;
+  }
+  .header::before {
+    content: ''; position: absolute;
+    bottom: -40px; left: 0; right: 0;
+    height: 80px; background: var(--light-gray);
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  }
+  .logo { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px; color: white; letter-spacing: -0.3px;
+  }
+  .header-info { position: relative; z-index: 1; }
+  .restaurant-name {
+    font-size: 26px; font-weight: 700; color: white;
+    letter-spacing: -0.5px; margin-bottom: 4px;
+  }
+  .split-meta {
+    font-size: 14px; color: rgba(255,255,255,0.9);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .guest-badge {
+    position: absolute; top: 20px; right: 20px;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    padding: 6px 12px; border-radius: 20px;
+    font-size: 13px; font-weight: 600; color: white; z-index: 2;
+  }
+  .host-card {
+    margin: 48px 16px 16px; background: white;
+    border-radius: 16px; padding: 16px; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 12px;
+    position: relative; z-index: 2;
+  }
+  .host-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--coral-light);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: var(--coral); font-size: 18px;
+  }
+  .host-info { flex: 1; }
+  .host-label { font-size: 12px; color: var(--gray); font-weight: 500; margin-bottom: 2px; }
+  .host-name { font-size: 16px; font-weight: 600; color: var(--black); }
+  .host-total {
+    font-size: 20px; font-weight: 700; color: var(--coral);
+    background: var(--coral-light); padding: 8px 14px; border-radius: 10px;
+  }
+  .section-header {
+    padding: 20px 20px 12px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .section-title {
+    font-size: 13px; font-weight: 600; color: var(--gray);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    display: flex; align-items: center;
+  }
+  .select-all-btn {
+    font-size: 14px; color: var(--coral); font-weight: 600;
+    background: none; border: none; cursor: pointer;
+  }
+  .items-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+  .item {
+    background: white; border-radius: 14px; padding: 16px;
+    display: flex; align-items: center; gap: 14px;
+    cursor: pointer; transition: all 0.15s ease;
+    border: 2px solid transparent;
+  }
+  .item:active { transform: scale(0.98); }
+  .item.claimed { background: var(--coral-light); border-color: var(--coral); }
+  .item.taken { opacity: 0.55; cursor: not-allowed; }
+  .item.taken .item-name { text-decoration: line-through; }
+  .item-check {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.15s;
+  }
+  .item.claimed .item-check { background: var(--coral); border-color: var(--coral); }
+  .item.claimed .item-check::after { content: '✓'; color: white; font-size: 16px; font-weight: 700; }
+  .item-info { flex: 1; min-width: 0; }
+  .item-name { font-size: 15px; font-weight: 600; color: var(--black); margin-bottom: 2px; }
+  .item-meta { font-size: 13px; color: var(--gray); }
+  .item-price { font-size: 16px; font-weight: 700; color: var(--black); }
+  .claimed-by { font-size: 11px; color: var(--coral); font-weight: 600; margin-top: 2px; }
+  .pre-claim {
+    padding: 24px 20px; text-align: center;
+    color: var(--gray); font-size: 14px;
+    background: white; margin: 16px; border-radius: 14px;
+  }
+  .summary-section { padding: 16px; margin-top: 8px; }
+  .summary-card {
+    background: white; border-radius: 16px;
+    padding: 20px; box-shadow: var(--shadow);
+  }
+  .summary-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; font-size: 15px; color: var(--gray);
+  }
+  .summary-row.total {
+    border-top: 1px solid var(--border); margin-top: 8px; padding-top: 14px;
+    font-size: 17px; font-weight: 700; color: var(--black);
+  }
+  .summary-row.total .summary-amount { color: var(--coral); font-size: 24px; }
+  .summary-amount { font-weight: 600; color: var(--black); }
+  .pay-btn {
+    width: calc(100% - 32px); margin: 8px 16px 24px;
+    background: var(--coral); color: white; border: none;
+    padding: 18px; border-radius: 14px;
+    font-size: 17px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(255,107,107,0.3);
+    transition: transform 0.1s; font-family: inherit;
+  }
+  .pay-btn:active { transform: scale(0.97); }
+  .pay-btn:disabled { background: var(--border); color: var(--gray); box-shadow: none; cursor: not-allowed; }
+  .payment-options { padding: 0 16px 24px; display: none; }
+  .payment-options.visible { display: block; }
+  .payment-title {
+    font-size: 13px; font-weight: 600; color: var(--gray);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    padding: 8px 4px 12px;
+  }
+  .payment-methods { display: flex; flex-direction: column; gap: 8px; }
+  .payment-method {
+    background: white; border-radius: 14px; padding: 16px;
+    display: flex; align-items: center; gap: 14px;
+    cursor: pointer; text-decoration: none; color: inherit;
+    border: 1px solid var(--border); transition: all 0.15s;
+  }
+  .payment-method:active { transform: scale(0.98); }
+  .payment-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; color: white;
+  }
+  .payment-icon.venmo { background: #3D95CE; }
+  .payment-icon.cashapp, .payment-icon.cash-app { background: #00D632; }
+  .payment-icon.zelle { background: #6D1ED4; }
+  .payment-icon.paypal { background: #003087; }
+  .payment-icon.apple-cash, .payment-icon.applecash { background: #000000; }
+  .payment-info { flex: 1; }
+  .payment-name { font-size: 15px; font-weight: 600; color: var(--black); }
+  .payment-handle { font-size: 13px; color: var(--gray); }
+  .payment-arrow { color: var(--gray); font-size: 20px; }
+  .get-app-banner {
+    background: linear-gradient(135deg, var(--coral) 0%, var(--coral-dark) 100%);
+    margin: 16px; padding: 18px; border-radius: 16px;
+    display: flex; align-items: center; gap: 14px;
+    color: white; box-shadow: 0 4px 20px rgba(255,107,107,0.3);
+  }
+  .app-icon {
+    width: 48px; height: 48px;
+    background: rgba(255,255,255,0.2); border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+  }
+  .app-info { flex: 1; }
+  .app-title { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+  .app-subtitle { font-size: 13px; opacity: 0.9; }
+  .app-btn {
+    background: white; color: var(--coral);
+    padding: 10px 18px; border-radius: 20px;
+    font-size: 14px; font-weight: 700; text-decoration: none;
+  }
+  .success-screen {
+    display: none; position: fixed; inset: 0;
+    background: white; z-index: 100;
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 20px; text-align: center;
+  }
+  .success-screen.visible { display: flex; }
+  .success-icon {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 24px; font-size: 40px; color: white;
+  }
+  .success-icon.pending { background: var(--warning); }
+  .success-icon.confirmed { background: var(--success); }
+  .success-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
+  .success-message { font-size: 16px; color: var(--gray); margin-bottom: 24px; max-width: 320px; line-height: 1.5; }
+  .success-amount { font-size: 40px; font-weight: 700; color: var(--coral); margin: 8px 0; }
+  .success-status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #FFF8E1; color: #F57F17;
+    padding: 8px 16px; border-radius: 20px;
+    font-size: 13px; font-weight: 700;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255,165,0,0.2);
+  }
+  .success-status-badge.confirmed {
+    background: #E8F5E9; color: #1B5E20;
+    border-color: rgba(0,200,83,0.2);
+  }
+  .success-status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--warning);
+    animation: pulse 1.5s infinite;
+  }
+  .success-status-badge.confirmed .success-status-dot { background: var(--success); animation: none; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--black); color: white;
+    padding: 12px 20px; border-radius: 24px;
+    font-size: 14px; font-weight: 600; z-index: 200;
+    transition: transform 0.3s ease; max-width: 90%;
+  }
+  .toast.visible { transform: translateX(-50%) translateY(0); }
+  .hidden { display: none !important; }
+  .sync-dot {
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--success);
+    margin-left: 6px; animation: pulse 2s infinite;
+  }
+  .sync-dot.saving { background: var(--warning); }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .pending-banner {
+    margin: 16px; padding: 16px;
+    background: #FFF8E1; border: 1px solid var(--warning);
+    border-radius: 14px; color: #F57F17;
+    display: flex; align-items: center; gap: 12px;
+    font-weight: 600; font-size: 14px;
+  }
+  .pending-banner.confirmed {
+    background: #E8F5E9;
+    border-color: var(--success);
+    color: #1B5E20;
+  }
+  .pending-banner .pending-icon {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--warning); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .pending-banner.confirmed .pending-icon { background: var(--success); }
+  .pending-banner .pending-text { flex: 1; line-height: 1.3; }
+  .pending-banner .pending-subtitle {
+    font-weight: 500; font-size: 12px; opacity: 0.85;
+    margin-top: 2px;
+  }
+  .done-btn {
+    width: calc(100% - 32px); margin: 8px 16px 24px;
+    background: white; color: var(--black);
+    border: 1px solid var(--border);
+    padding: 16px; border-radius: 14px;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .resume-card {
+    width: 100%; max-width: 320px;
+    background: var(--coral-light); border: 2px solid var(--coral);
+    border-radius: 14px; padding: 16px;
+    margin-bottom: 12px; text-align: left;
+  }
+  .resume-card .resume-name {
+    font-size: 15px; font-weight: 700; color: var(--black);
+    margin-bottom: 2px;
+  }
+  .resume-card .resume-meta {
+    font-size: 13px; color: var(--gray);
+  }
+  .payment-icon.cash { background: #2A9D5C; font-size: 20px; }
+  .payment-method.cash-option {
+    width: 100%;
+    background: white;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .payment-method.cash-option:active { transform: scale(0.98); }
+
+  /* Shared items */
+  .item.shared { background: #FFF8E7; border-color: #F6C94B; }
+  .item.shared.claimed { background: var(--coral-light); border-color: var(--coral); }
+  .shared-label { color: #C17900 !important; font-weight: 600 !important; }
+  .item-price { display: flex; flex-direction: column; align-items: flex-end; }
+  .item-price-full {
+    font-size: 13px; color: var(--gray); font-weight: 500;
+    text-decoration: line-through; margin-bottom: 2px;
+  }
+  .item-price-share {
+    font-size: 16px; font-weight: 700; color: var(--coral);
+  }
+
+  /* Split confirmation bottom sheet */
+  .split-prompt {
+    position: fixed; inset: 0; z-index: 300;
+    display: none;
+  }
+  .split-prompt.visible { display: block; }
+  .split-prompt-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.4);
+    animation: fadein 0.2s ease;
+  }
+  .split-prompt-card {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: white;
+    border-radius: 24px 24px 0 0;
+    padding: 12px 24px 32px;
+    text-align: center;
+    animation: slideup 0.25s ease;
+    max-width: 430px; margin: 0 auto;
+  }
+  .split-prompt-handle {
+    width: 40px; height: 4px;
+    background: var(--border); border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .split-prompt-emoji { font-size: 48px; margin-bottom: 12px; }
+  .split-prompt-title {
+    font-size: 20px; font-weight: 700; color: var(--black);
+    margin-bottom: 8px; letter-spacing: -0.3px;
+  }
+  .split-prompt-body {
+    font-size: 15px; color: var(--gray);
+    line-height: 1.5; margin-bottom: 8px;
+    max-width: 300px; margin-left: auto; margin-right: auto;
+  }
+  @keyframes slideup {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  @keyframes fadein {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
 </style>
@@ -1029,11 +1455,13 @@ function showSplitPrompt(item, others) {
   const title = document.getElementById('split-prompt-title');
   const body = document.getElementById('split-prompt-body');
   const confirmBtn = document.getElementById('split-prompt-confirm');
+  const emoji = document.querySelector('#split-prompt .split-prompt-emoji');
 
+  if (emoji) emoji.textContent = '🤝';
   title.textContent = `Share "${item.name}" with ${otherNames}?`;
   body.innerHTML = `<strong>${escapeHtml(item.name)}</strong> costs $${item.price.toFixed(2)}. ` +
     `Splitting with ${newCount} people means each of you pays <strong>$${perPerson}</strong>.`;
-
+  confirmBtn.textContent = 'Yes, split it';
   confirmBtn.onclick = () => {
     hideSplitPrompt();
     toggleItem(item.id);
@@ -1308,10 +1736,6 @@ function renderPaymentMethods(amount) {
   const container = document.getElementById('payment-methods');
   container.innerHTML = '';
   const methods = splitData.paymentMethods || [];
-  if (methods.length === 0) {
-    container.innerHTML = '<div class="pre-claim" style="margin:0">Host hasn\'t set up payment methods yet.</div>';
-    return;
-  }
   methods.forEach(m => {
     const platform = (m.platform || '').toLowerCase();
     const handle = m.handle || '';
@@ -1322,9 +1746,7 @@ function renderPaymentMethods(amount) {
     a.href = url;
     a.className = 'payment-method';
     a.onclick = (e) => {
-      // Fire PATCH with keepalive so the request survives navigation to the payment app
       markAsPendingKeepalive(m.platform, amount);
-      // Update local state immediately so UI reflects pending
       paymentStatus = 'pending';
       updatePaymentBanners();
       setTimeout(() => showSuccessPending(m.platform), 600);
@@ -1339,6 +1761,60 @@ function renderPaymentMethods(amount) {
     `;
     container.appendChild(a);
   });
+
+  // Always show a "Pay in person" / cash fallback at the bottom
+  // For when the guest has none of the host's apps or wants to pay cash directly
+  const cashBtn = document.createElement('button');
+  cashBtn.className = 'payment-method cash-option';
+  cashBtn.onclick = (e) => {
+    e.preventDefault();
+    showCashConfirm(amount);
+  };
+  cashBtn.innerHTML = `
+    <div class="payment-icon cash">💵</div>
+    <div class="payment-info">
+      <div class="payment-name">I'll pay in person</div>
+      <div class="payment-handle">Cash, or you don't have these apps</div>
+    </div>
+    <div class="payment-arrow">›</div>
+  `;
+  container.appendChild(cashBtn);
+
+  // If host didn't set any payment methods at all, add explanatory note
+  if (methods.length === 0) {
+    const note = document.createElement('div');
+    note.className = 'pre-claim';
+    note.style.margin = '12px 0 0';
+    note.textContent = "The host hasn't set up digital payment methods yet. Tap above to let them know you'll pay in person.";
+    container.appendChild(note);
+  }
+}
+
+function showCashConfirm(amount) {
+  const sheet = document.getElementById('split-prompt');
+  const title = document.getElementById('split-prompt-title');
+  const body = document.getElementById('split-prompt-body');
+  const confirmBtn = document.getElementById('split-prompt-confirm');
+  const emoji = document.querySelector('#split-prompt .split-prompt-emoji');
+
+  if (emoji) emoji.textContent = '💵';
+  title.textContent = 'Pay in person?';
+  body.innerHTML = `You'll owe <strong>$${amount.toFixed(2)}</strong> to ${escapeHtml(splitData.hostName)} directly. ` +
+    `They'll mark you as paid once they've got it in hand.`;
+  confirmBtn.textContent = "Yes, I'll pay in person";
+  confirmBtn.onclick = () => {
+    hideSplitPrompt();
+    markAsCash(amount);
+  };
+  sheet.classList.add('visible');
+}
+
+function markAsCash(amount) {
+  paymentStatus = 'pending';
+  updatePaymentBanners();
+  // Fire keepalive PATCH marking this guest's status, using "Cash" as platform
+  markAsPendingKeepalive('Cash', amount);
+  setTimeout(() => showSuccessPending('Cash'), 400);
 }
 
 function buildPaymentUrl(platform, handle, amount) {
