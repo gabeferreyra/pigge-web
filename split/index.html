@@ -384,25 +384,34 @@
     font-size: 16px; font-weight: 700; color: var(--coral);
   }
 
-  /* Split confirmation bottom sheet */
+  /* Modal popup (was bottom sheet) */
   .split-prompt {
     position: fixed; inset: 0; z-index: 300;
     display: none;
   }
-  .split-prompt.visible { display: block; }
+  .split-prompt.visible {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
   .split-prompt-backdrop {
     position: absolute; inset: 0;
     background: rgba(0,0,0,0.4);
     animation: fadein 0.2s ease;
   }
   .split-prompt-card {
-    position: absolute; left: 0; right: 0; bottom: 0;
+    position: relative;
     background: white;
-    border-radius: 24px 24px 0 0;
-    padding: 12px 24px 32px;
+    border-radius: 20px;
+    padding: 32px 24px 24px;
     text-align: center;
-    animation: slideup 0.25s ease;
-    max-width: 430px; margin: 0 auto;
+    animation: popin 0.2s ease;
+    max-width: 360px;
+    width: calc(100% - 40px);
+    margin: 0 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    max-height: 90vh;
+    overflow-y: auto;
   }
   .sheet-close {
     position: absolute; top: 14px; right: 14px;
@@ -416,11 +425,7 @@
     z-index: 1;
   }
   .sheet-close:active { transform: scale(0.9); }
-  .split-prompt-handle {
-    width: 40px; height: 4px;
-    background: var(--border); border-radius: 2px;
-    margin: 0 auto 16px;
-  }
+  .split-prompt-handle { display: none; }
   .split-prompt-emoji { font-size: 48px; margin-bottom: 12px; }
   .split-prompt-title {
     font-size: 20px; font-weight: 700; color: var(--black);
@@ -431,9 +436,9 @@
     line-height: 1.5; margin-bottom: 8px;
     max-width: 300px; margin-left: auto; margin-right: auto;
   }
-  @keyframes slideup {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
+  @keyframes popin {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
   }
   @keyframes fadein {
     from { opacity: 0; }
