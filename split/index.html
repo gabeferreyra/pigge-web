@@ -359,6 +359,63 @@
   .resume-card .resume-meta {
     font-size: 13px; color: var(--gray);
   }
+  /* Shared items */
+  .item.shared { background: #FFF8E7; border-color: #F6C94B; }
+  .item.shared.claimed { background: var(--coral-light); border-color: var(--coral); }
+  .shared-label { color: #C17900 !important; font-weight: 600 !important; }
+  .item-price { display: flex; flex-direction: column; align-items: flex-end; }
+  .item-price-full {
+    font-size: 13px; color: var(--gray); font-weight: 500;
+    text-decoration: line-through; margin-bottom: 2px;
+  }
+  .item-price-share {
+    font-size: 16px; font-weight: 700; color: var(--coral);
+  }
+
+  /* Split confirmation bottom sheet */
+  .split-prompt {
+    position: fixed; inset: 0; z-index: 300;
+    display: none;
+  }
+  .split-prompt.visible { display: block; }
+  .split-prompt-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.4);
+    animation: fadein 0.2s ease;
+  }
+  .split-prompt-card {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: white;
+    border-radius: 24px 24px 0 0;
+    padding: 12px 24px 32px;
+    text-align: center;
+    animation: slideup 0.25s ease;
+    max-width: 430px; margin: 0 auto;
+  }
+  .split-prompt-handle {
+    width: 40px; height: 4px;
+    background: var(--border); border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .split-prompt-emoji { font-size: 48px; margin-bottom: 12px; }
+  .split-prompt-title {
+    font-size: 20px; font-weight: 700; color: var(--black);
+    margin-bottom: 8px; letter-spacing: -0.3px;
+  }
+  .split-prompt-body {
+    font-size: 15px; color: var(--gray);
+    line-height: 1.5; margin-bottom: 8px;
+    max-width: 300px; margin-left: auto; margin-right: auto;
+  }
+  @keyframes slideup {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  @keyframes fadein {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
 </style>
 </head>
 <body>
@@ -475,6 +532,18 @@
     <span id="success-host">The host</span> will confirm they received your payment. This helps make sure everyone paid correctly.
   </div>
   <button class="done-btn" onclick="hideSuccess()">Done</button>
+</div>
+
+<div id="split-prompt" class="split-prompt">
+  <div class="split-prompt-backdrop" onclick="hideSplitPrompt()"></div>
+  <div class="split-prompt-card">
+    <div class="split-prompt-handle"></div>
+    <div class="split-prompt-emoji">🤝</div>
+    <div id="split-prompt-title" class="split-prompt-title"></div>
+    <div id="split-prompt-body" class="split-prompt-body"></div>
+    <button class="primary-btn" id="split-prompt-confirm" style="margin-top:20px;max-width:100%;">Yes, split it</button>
+    <button class="secondary-btn" onclick="hideSplitPrompt()" style="max-width:100%;">Cancel</button>
+  </div>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -841,29 +910,80 @@ function renderItems() {
   const list = document.getElementById('items-list');
   list.innerHTML = '';
   splitData.items.forEach(item => {
-    const claimedByOthers = getOthersWhoClaimedItem(item);
-    const isTaken = claimedByOthers.length > 0 && !item.isSplit;
+    const others = getOthersWhoClaimedItem(item);
     const isMine = claimedItems.has(item.id);
+    const totalClaimers = others.length + (isMine ? 1 : 0);
+    const isShared = totalClaimers > 1;
     const locked = paymentStatus !== 'none';
+
+    // Item is "locked" if anyone who claimed it has already paid/settled
+    const anyClaimerPaid = isItemLockedByPayment(item);
+
+    // Per-person share of this item
+    const perPersonPrice = totalClaimers > 0 ? (item.price / totalClaimers) : item.price;
+
     const div = document.createElement('div');
-    div.className = 'item' + (isTaken && !isMine ? ' taken' : '') + (isMine ? ' claimed' : '');
+    let classes = 'item';
+    if (isMine) classes += ' claimed';
+    if (isShared) classes += ' shared';
+    if (anyClaimerPaid && !isMine) classes += ' taken';
+    div.className = classes;
     div.id = `item-${item.id}`;
-    div.onclick = () => { if (!(isTaken && !isMine) && !locked) toggleItem(item.id); };
-    let claimedLabel = '';
-    if (isTaken && !isMine) {
-      const claimer = claimedByOthers[0];
-      claimedLabel = `<div class="claimed-by">Claimed by ${claimer ? escapeHtml(claimer.name) : 'someone'}</div>`;
+    div.onclick = () => {
+      if (locked) return;
+      if (anyClaimerPaid && !isMine) return;
+      handleItemTap(item.id);
+    };
+
+    // Build the claim label
+    let claimLabel = '';
+    if (isShared) {
+      const otherNames = others.map(p => escapeHtml(p.name)).join(', ');
+      if (isMine) {
+        claimLabel = `<div class="claimed-by shared-label">Shared with ${otherNames} (${totalClaimers} people)</div>`;
+      } else {
+        const allNames = others.map(p => escapeHtml(p.name)).join(', ');
+        claimLabel = `<div class="claimed-by">Shared by ${allNames}${anyClaimerPaid ? ' • settled' : ' • tap to join'}</div>`;
+      }
+    } else if (others.length > 0) {
+      const claimer = others[0];
+      const lockNote = anyClaimerPaid ? ' • already paid' : ' • tap to split';
+      claimLabel = `<div class="claimed-by">Claimed by ${escapeHtml(claimer.name)}${lockNote}</div>`;
     }
+
+    const priceDisplay = isShared
+      ? `<div class="item-price"><div class="item-price-full">$${item.price.toFixed(2)}</div><div class="item-price-share">$${perPersonPrice.toFixed(2)} each</div></div>`
+      : `<div class="item-price">$${item.price.toFixed(2)}</div>`;
+
     div.innerHTML = `
       <div class="item-check"></div>
       <div class="item-info">
         <div class="item-name">${escapeHtml(item.name)}</div>
         <div class="item-meta">Qty ${item.quantity}</div>
-        ${claimedLabel}
+        ${claimLabel}
       </div>
-      <div class="item-price">$${item.price.toFixed(2)}</div>
+      ${priceDisplay}
     `;
     list.appendChild(div);
+  });
+}
+
+// Check if any guest who claimed this item has initiated payment (pending or settled)
+function isItemLockedByPayment(item) {
+  const allClaimers = [];
+  (item.claimedBy || []).forEach(id => {
+    const p = splitData.participants.find(pp => sameId(pp.id, id));
+    if (p) allClaimers.push(p);
+  });
+  splitData.participants.forEach(p => {
+    if (Array.isArray(p.claimedItemIds) && arrIncludesId(p.claimedItemIds, item.id)) {
+      if (!allClaimers.find(c => sameId(c.id, p.id))) allClaimers.push(p);
+    }
+  });
+  return allClaimers.some(p => {
+    if (p.hasPaid === true) return true;
+    const s = (p.status || '').toLowerCase();
+    return s === 'settled' || s === 'paid' || s === 'pending_confirmation' || s === 'pendingconfirmation';
   });
 }
 
@@ -876,34 +996,80 @@ function escapeHtml(str) {
 // ==========================================================
 // Claiming
 // ==========================================================
+// Entry point for item tap — handles both direct claim/unclaim and split-with prompt
+function handleItemTap(id) {
+  if (paymentStatus !== 'none') return;
+  const item = splitData.items.find(i => i.id === id);
+  if (!item) return;
+
+  const others = getOthersWhoClaimedItem(item);
+  const isMine = claimedItems.has(id);
+
+  // If it's mine (shared or solo), tapping unclaims it directly
+  if (isMine) {
+    toggleItem(id);
+    return;
+  }
+
+  // If no one else has it, tapping claims it directly
+  if (others.length === 0) {
+    toggleItem(id);
+    return;
+  }
+
+  // Someone else has it — prompt to split
+  showSplitPrompt(item, others);
+}
+
+function showSplitPrompt(item, others) {
+  const newCount = others.length + 1;
+  const perPerson = (item.price / newCount).toFixed(2);
+  const otherNames = others.map(p => p.name).join(', ');
+  const sheet = document.getElementById('split-prompt');
+  const title = document.getElementById('split-prompt-title');
+  const body = document.getElementById('split-prompt-body');
+  const confirmBtn = document.getElementById('split-prompt-confirm');
+
+  title.textContent = `Share "${item.name}" with ${otherNames}?`;
+  body.innerHTML = `<strong>${escapeHtml(item.name)}</strong> costs $${item.price.toFixed(2)}. ` +
+    `Splitting with ${newCount} people means each of you pays <strong>$${perPerson}</strong>.`;
+
+  confirmBtn.onclick = () => {
+    hideSplitPrompt();
+    toggleItem(item.id);
+  };
+
+  sheet.classList.add('visible');
+}
+
+function hideSplitPrompt() {
+  document.getElementById('split-prompt').classList.remove('visible');
+}
+
 function toggleItem(id) {
   if (paymentStatus !== 'none') return;
-  const card = document.getElementById(`item-${id}`);
-  if (!card || card.classList.contains('taken')) return;
   const wasClaimed = claimedItems.has(id);
-  if (wasClaimed) { claimedItems.delete(id); card.classList.remove('claimed'); }
-  else { claimedItems.add(id); card.classList.add('claimed'); }
+  if (wasClaimed) claimedItems.delete(id);
+  else claimedItems.add(id);
   pendingSync = true;
   setSyncDot('saving');
+  renderItems();  // full re-render so shared state / per-person pricing updates
   updateSummary();
   scheduleClaimSync();
 }
 
 function toggleSelectAll() {
   if (paymentStatus !== 'none') return;
-  const available = splitData.items.filter(i => {
-    const others = getOthersWhoClaimedItem(i);
-    return !(others.length > 0 && !i.isSplit);
-  });
+  // Available = any item not locked by someone's payment
+  const available = splitData.items.filter(i => !isItemLockedByPayment(i));
   const allClaimed = available.every(i => claimedItems.has(i.id));
   available.forEach(item => {
-    const card = document.getElementById(`item-${item.id}`);
-    if (!card) return;
-    if (allClaimed) { claimedItems.delete(item.id); card.classList.remove('claimed'); }
-    else { claimedItems.add(item.id); card.classList.add('claimed'); }
+    if (allClaimed) claimedItems.delete(item.id);
+    else claimedItems.add(item.id);
   });
   pendingSync = true;
   setSyncDot('saving');
+  renderItems();
   updateSummary();
   scheduleClaimSync();
 }
@@ -942,7 +1108,10 @@ async function syncClaimsToServer() {
 
     let mySubtotal = 0;
     updatedItems.forEach(i => {
-      if (localClaimed.has(i.id)) mySubtotal += Number(i.price) || 0;
+      if (localClaimed.has(i.id)) {
+        const claimerCount = (i.claimedBy || []).length || 1;
+        mySubtotal += (Number(i.price) || 0) / claimerCount;
+      }
     });
     const splitSubtotal = Number(latest.subtotal) || 0;
     const ratio = splitSubtotal > 0 ? mySubtotal / splitSubtotal : 0;
@@ -1058,7 +1227,11 @@ function startPolling() {
 
 function getYourSubtotal() {
   return splitData.items.filter(i => claimedItems.has(i.id))
-    .reduce((sum, i) => sum + (Number(i.price) || 0), 0);
+    .reduce((sum, i) => {
+      const others = getOthersWhoClaimedItem(i);
+      const totalClaimers = others.length + 1;
+      return sum + ((Number(i.price) || 0) / totalClaimers);
+    }, 0);
 }
 
 function updateSummary() {
