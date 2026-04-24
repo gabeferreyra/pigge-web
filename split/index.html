@@ -88,7 +88,7 @@
   }
   .header {
     background: var(--coral);
-    padding: 52px 20px 32px;
+    padding: 20px 20px 40px;
     position: relative; overflow: hidden;
   }
   .header::before {
@@ -97,33 +97,39 @@
     height: 80px; background: var(--light-gray);
     border-radius: 50% 50% 0 0 / 100% 100% 0 0;
   }
-  .logo { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+  .header-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+    position: relative; z-index: 2;
+  }
+  .logo { display: flex; align-items: center; gap: 6px; }
   .logo-icon {
-    width: 36px; height: 36px;
+    width: 24px; height: 24px;
     background: rgba(255,255,255,0.25);
-    border-radius: 10px;
+    border-radius: 7px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
+    font-size: 13px;
   }
   .logo-text {
     font-family: 'DM Serif Display', serif;
-    font-size: 22px; color: white; letter-spacing: -0.3px;
+    font-size: 17px; color: white; letter-spacing: -0.2px;
   }
   .header-info { position: relative; z-index: 1; }
   .restaurant-name {
-    font-size: 26px; font-weight: 700; color: white;
-    letter-spacing: -0.5px; margin-bottom: 4px;
+    font-size: 30px; font-weight: 700; color: white;
+    letter-spacing: -0.7px; margin-bottom: 6px;
+    line-height: 1.1;
   }
   .split-meta {
-    font-size: 14px; color: rgba(255,255,255,0.9);
+    font-size: 14px; color: rgba(255,255,255,0.95);
     display: flex; align-items: center; gap: 12px;
+    font-weight: 500;
   }
   .guest-badge {
-    position: absolute; top: 20px; right: 20px;
     background: rgba(255,255,255,0.2);
     backdrop-filter: blur(10px);
     padding: 6px 12px; border-radius: 20px;
-    font-size: 13px; font-weight: 600; color: white; z-index: 2;
+    font-size: 12px; font-weight: 600; color: white;
   }
   .host-card {
     margin: 48px 16px 16px; background: white;
@@ -481,16 +487,19 @@
 
 <div id="main-content" class="hidden">
   <div class="header">
-    <div class="guest-badge" id="guest-badge"></div>
-    <div class="logo">
-      <div class="logo-icon">🐷</div>
-      <div class="logo-text">Pigge</div>
+    <div class="header-top">
+      <div class="logo">
+        <div class="logo-icon">🐷</div>
+        <div class="logo-text">Pigge</div>
+      </div>
+      <div class="guest-badge" id="guest-badge"></div>
     </div>
     <div class="header-info">
       <div class="restaurant-name" id="restaurant-name"></div>
       <div class="split-meta">
-        <span>🧾 <span id="item-count"></span> items</span>
-        <span>👥 <span id="people-count"></span> people</span>
+        <span id="item-count"></span> items
+        <span>·</span>
+        <span id="people-count-label"></span>
       </div>
     </div>
   </div>
@@ -913,7 +922,9 @@ async function registerGuest() {
 function render() {
   document.getElementById('restaurant-name').textContent = splitData.restaurant;
   document.getElementById('item-count').textContent = splitData.items.length;
-  document.getElementById('people-count').textContent = splitData.participants.length || 1;
+  const peopleCount = splitData.participants.length || 1;
+  document.getElementById('people-count-label').textContent =
+    peopleCount === 1 ? '1 person' : `${peopleCount} people`;
   document.getElementById('host-name').textContent = splitData.hostName;
   document.getElementById('host-avatar').textContent = (splitData.hostName[0] || 'H').toUpperCase();
   document.getElementById('host-total').textContent = `$${splitData.total.toFixed(2)}`;
