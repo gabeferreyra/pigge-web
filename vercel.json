@@ -1,5 +1,7 @@
 {
   "rewrites": [
-    { "source": "/split/:code", "destination": "/split/index.html" }
+    { "source": "/split/:code", "destination": "/split/index.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/terms", "destination": "/terms.html" }
   ]
 }
