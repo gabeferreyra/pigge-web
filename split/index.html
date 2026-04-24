@@ -1655,6 +1655,65 @@ function showError(msg) {
   if (msg) document.getElementById('error-message').textContent = msg;
 }
 
+// Swipe-down-to-dismiss on bottom sheets (waitlist + split-prompt)
+function setupSheetDragToDismiss(sheetId, dismissFn) {
+  const sheet = document.getElementById(sheetId);
+  if (!sheet) return;
+  const card = sheet.querySelector('.split-prompt-card');
+  if (!card) return;
+  let startY = null;
+  let currentY = 0;
+  let dragging = false;
+
+  card.addEventListener('touchstart', (e) => {
+    // Only start dragging if the touch begins near the top of the card
+    // (the handle / emoji area) so input fields below can still scroll/select
+    const touch = e.touches[0];
+    const rect = card.getBoundingClientRect();
+    const offsetFromTop = touch.clientY - rect.top;
+    if (offsetFromTop > 120) return;  // ignore drags below the header area
+    startY = touch.clientY;
+    currentY = 0;
+    dragging = true;
+    card.style.transition = 'none';
+  }, { passive: true });
+
+  card.addEventListener('touchmove', (e) => {
+    if (!dragging || startY === null) return;
+    const touch = e.touches[0];
+    const delta = touch.clientY - startY;
+    if (delta > 0) {
+      currentY = delta;
+      card.style.transform = `translateY(${delta}px)`;
+    }
+  }, { passive: true });
+
+  card.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    card.style.transition = 'transform 0.2s ease';
+    if (currentY > 120) {
+      // Dismiss
+      card.style.transform = 'translateY(100%)';
+      setTimeout(() => {
+        card.style.transform = '';
+        dismissFn();
+      }, 200);
+    } else {
+      // Snap back
+      card.style.transform = '';
+    }
+    startY = null;
+    currentY = 0;
+  });
+}
+
+// Set up drag-to-dismiss once the page is ready
+setTimeout(() => {
+  setupSheetDragToDismiss('waitlist', hideWaitlist);
+  setupSheetDragToDismiss('split-prompt', hideSplitPrompt);
+}, 500);
+
 init();
 </script>
 </body>
