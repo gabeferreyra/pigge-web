@@ -1199,11 +1199,31 @@ function startPolling() {
         rawRow = latest;
         splitData = normalizeSplitData(latest);
         if (!pendingSync) {
-          claimedItems = new Set();
-          const myItemIds = getMyClaimedItemIds();
-          splitData.items.forEach(i => {
-            if (myItemIds.has(i.id)) claimedItems.add(i.id);
-          });
+          // Union of remote claims and our current local claims.
+          // If remote doesn't yet have a claim we made recently (race/iOS echo),
+          // our local take takes precedence and will be re-synced.
+          const remoteClaimed = getMyClaimedItemIds();
+          const unionClaimed = new Set(claimedItems);
+          remoteClaimed.forEach(id => unionClaimed.add(id));
+
+          // Keep a claim from local even if remote hasn't caught up — but only
+          // during the 8-second grace window right after a successful sync.
+          const withinGrace = (Date.now() - lastSuccessfulSyncAt) < 8000;
+
+          if (withinGrace) {
+            // Union — don't let remote drop claims we just made
+            claimedItems = unionClaimed;
+          } else {
+            // Outside grace window: trust remote fully
+            claimedItems = new Set();
+            remoteClaimed.forEach(id => claimedItems.add(id));
+          }
+
+          // If local drifted from remote, schedule a sync to reconcile
+          if (!setsEqual(claimedItems, remoteClaimed)) {
+            pendingSync = true;
+            scheduleClaimSync();
+          }
         }
         renderItems();
         updateSummary();
